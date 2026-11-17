@@ -57,6 +57,7 @@ Codespaces に入っているツールを確かめて書いた。
 - **気をつけること**:
   - Node.js は「Codespaces（開発）」と「Maven のビルド（frontend-maven-plugin がビルド用に別に入れる）」の2か所で使う。
     この2か所の版を同じにする（devcontainer.json と pom.xml の両方に書く。Day3）。
+    `pom.xml` の `nodeVersion` は `v24.22.3` とし、devcontainer.json を作るときは、それと同じ版にする。
 - **検討した他の案**:
 
 | 案 | 採らなかった理由 |
@@ -184,7 +185,7 @@ Codespaces に入っているツールを確かめて書いた。
   - 実質年率は小数第1位までなので、k ＝ 実質年率 × 10 は 0〜150 の整数になる。月利 r ＝ k ÷ 12,000。
   - D ＝ 12,000、A ＝ (D ＋ k)^n、B ＝ D^n とおくと、(1 ＋ r)^n ＝ A ÷ B なので、仕様の式は次のように整数の割り算1回で書ける。
 
-    手数料の総額 ＝ 切り捨て( (n × P × k × A − P × D × (A − B)) ÷ (D × (A − B)) )　（P ＝ 利用金額）
+    手数料の合計 ＝ 切り捨て( (n × P × k × A − P × D × (A − B)) ÷ (D × (A − B)) )　（P ＝ 利用金額）
 
   - 返済表の手数料（最終回の1つ前まで）は ＝ 切り捨て( 前回の残高 × k ÷ 12,000 )。これも整数の割り算1回。
   - 実装では、整数の値を持つ `BigDecimal` で掛け算・引き算をし、最後に `divide(除数, 0, RoundingMode.DOWN)` で
@@ -221,7 +222,7 @@ Codespaces に入っているツールを確かめて書いた。
       多くの条件の組み合わせ（`@ParameterizedTest`）で確かめる（SC-003）。
   - 入力チェック：境界値（999／1,000／10,000,000／10,000,001円、4回、−0.1／0.0／15.0／15.1%、12.25%、未入力、数字以外）。
   - API：MockMvc（`@WebMvcTest`）で、200 と 400 のレスポンスの形を [contracts](contracts/installment-simulation-api.md) と照らし合わせる。
-- **フロントエンド**: Vitest ＋ React Testing Library ＋ jsdom。
+- **フロントエンド**: Vitest ＋ React Testing Library ＋ jsdom。入力の操作には @testing-library/user-event、画面の確かめ（`toBeInTheDocument` など）には @testing-library/jest-dom を使う。
   - API の呼び出しはモジュールごと差し替え（`vi.mock`）、画面の動き（入力 → 結果の表示、エラーの表示、再実行で前回の結果が消える）を確かめる。
   - 金額の3桁区切り（FR-014）、初回と2回目以降の分け方（FR-012）。
   - 検討した他の案：MSW で API をまねる。本物に近いが、依存ライブラリが増える（原則VIII）。

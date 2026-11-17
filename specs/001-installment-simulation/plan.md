@@ -25,7 +25,7 @@
 | 言語／バージョン | Java 25（LTS）、TypeScript。Node.js 24（LTS） | [research.md](research.md) R1・R3 |
 | 主なフレームワーク | Spring Boot 4.1 系に固定（Spring Web MVC）、React。4.2 は 11/19 リリース予定だが、スプリント中は乗り換えない | [ADR 0001](../../docs/adr/0001-技術スタック.md)、R2 |
 | ビルド | Maven（Maven Wrapper で版を固定）。frontend-maven-plugin でフロントをビルドし、jar に同梱 | [ADR 0002](../../docs/adr/0002-ビルドツール.md)・[0003](../../docs/adr/0003-リポジトリと成果物.md)、R4・R5 |
-| フロントのビルド／テスト | Vite、Vitest ＋ React Testing Library ＋ jsdom | [ADR 0012](../../docs/adr/0012-フロントのビルドとテスト.md)、R9 |
+| フロントのビルド／テスト | Vite、Vitest ＋ React Testing Library（user-event・jest-dom を含む）＋ jsdom | [ADR 0012](../../docs/adr/0012-フロントのビルドとテスト.md)、R9 |
 | 保存 | なし（DB は使わない。結果も保存しない） | 前提、spec の Assumptions、R10 |
 | テスト | JUnit 5 ＋ AssertJ（計算の単体テスト）、MockMvc（API）、Vitest（画面） | R9 |
 | カバレッジ | 行・分岐とも90%以上。計測ツールと除外対象は Day3 に ADR 0006 で決める（候補：JaCoCo、@vitest/coverage-v8） | constitution 原則II、[ADR 0006](../../docs/adr/0006-カバレッジ基準.md) |
@@ -96,10 +96,12 @@ src/
 │   │           ├── InstallmentSimulationController.java
 │   │           ├── InstallmentSimulationRequest.java    # 文字列で受ける
 │   │           ├── InstallmentSimulationResponse.java
-│   │           └── InstallmentInputValidator.java       # 文字列 → InstallmentCondition、項目ごとのエラー
+│   │           ├── InstallmentInputValidator.java       # 文字列 → InstallmentCondition、項目ごとのエラー
+│   │           └── InstallmentInputException.java       # 項目ごとのエラーの一覧を持つ例外
 │   └── resources/
 │       └── application.properties
 └── test/java/com/example/cardpayment/
+    ├── CardPaymentSimulatorApplicationTests.java   # コンテキストが起動するか
     └── installment/
         ├── domain/                      # 計算の単体テスト（spec の表を期待値にする）
         └── web/                         # 入力チェックの単体テスト、MockMvc の API テスト
@@ -110,7 +112,9 @@ frontend/
 ├── index.html
 └── src/
     ├── main.tsx
+    ├── main.test.tsx                    # #root に画面が表示されるか
     ├── App.tsx
+    ├── setupTests.ts                    # Vitest の準備（jest-dom を読み込む）
     ├── shared/
     │   └── formatYen.ts                 # 3桁区切り（FR-014）
     └── features/installment/
@@ -162,7 +166,7 @@ frontend/
 
 `docs/sprint-plan.md` の予定（Day3：土台、Day5：分割払い）に合わせる。各ステップは TDD（原則I）で進める。
 
-1. **土台（Day3）**: Spring Boot と `frontend/` の雛形、frontend-maven-plugin による jar への同梱、カバレッジの閾値。Hello を返すだけの最小構成で、1つの jar が端から端まで動くことを確かめる。
+1. **土台（Day3）**: Spring Boot と `frontend/` の雛形、frontend-maven-plugin による jar への同梱、カバレッジの閾値。見出しを表示するだけの最小構成で、1つの jar が端から端まで動くことを確かめる。
 2. **計算（P1・P2）**: `InstallmentCalculator`。spec の受け入れシナリオと FR-008〜FR-010 の性質をテストにする。
 3. **入力チェック（P3）**: `InstallmentInputValidator`。境界値と形式の誤りをテストにする。
 4. **API**: Controller とエラーの共通処理。MockMvc で contracts と照らし合わせる。
