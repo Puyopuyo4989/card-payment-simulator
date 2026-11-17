@@ -20,7 +20,7 @@
 |---|---|---|---|
 | 11/16（月）Day1 | — | この計画を確定する。リポジトリ・Codespaces・Claude Code・Superpowers・SpecKitを準備する。**mainブランチの保護設定**と**PreToolUseのhook**（危険なコマンドと`.env`の読み取りをブロック）を入れる | PreToolUseのhookが、わざと頼んだ危険なコマンドを止める。mainへの直接pushが拒否される |
 | 11/17（火）Day2 | `/speckit.constitution`でプロジェクトの原則を決める。`/speckit.specify`と`/speckit.clarify`で**3機能すべての仕様**を作る | ADR（技術選定・リポジトリ構成・金額計算・カバレッジ基準・ツールの使い分け・hookの方針・**デプロイ先とDBの置き場所・デプロイ方法**）。**分割払いだけ**`/speckit.plan`→`/speckit.tasks`→`/speckit.analyze`まで進める。**自作スキル①：金額計算のレビュー**を作る（遅れたらDay5へ） | constitutionと3機能の仕様がレビュー済み。分割払いの設計とタスク一覧がレビュー済み。スキル①が、わざと`double`で書いたコードを指摘できる |
-| 11/18（水）Day3 | devcontainer.jsonでバージョンを固定する。Gradleでフロントも一緒にビルドして1つのjarにする。JaCoCo・Vitestで90%の閾値を設定する | CI（GitHub Actions）を作る。Helloを表示するだけの最小構成を端から端まで動かす。**lefthook**（pre-commit：フォーマット・lint・シークレット検知、commit-msg：メッセージの形式チェック）と、**PostToolUseのhook**（編集後に自動でフォーマットと関連テスト）を入れる | CIが通る。わざとカバレッジを下げるとCIが落ちる。各hookがわざとした違反を止める |
+| 11/18（水）Day3 | devcontainer.jsonでバージョンを固定する。Mavenでフロントも一緒にビルドして1つのjarにする。JaCoCo・Vitestで90%の閾値を設定する | CI（GitHub Actions）を作る。Helloを表示するだけの最小構成を端から端まで動かす。**lefthook**（pre-commit：フォーマット・lint・シークレット検知、commit-msg：メッセージの形式チェック）と、**PostToolUseのhook**（編集後に自動でフォーマットと関連テスト）を入れる | CIが通る。わざとカバレッジを下げるとCIが落ちる。各hookがわざとした違反を止める |
 | 11/19（木）Day4 | PostgreSQL（compose）＋Flyway、Dockerfile | **EC2の用意とCD**（GitHub Actions → GHCR → OIDC＋SSMでEC2に反映）。Helloの画面を自動デプロイする | コンテナで起動できる。mainにマージするとEC2に自動でデプロイされ、ブラウザからHelloが見える |
 | 11/20（金）Day5 | **Stopのhook**（作業を終える前にテストとカバレッジを確認）、**pre-push**（テスト全件とカバレッジ90%）、**自作スキル②：PR前の確認**を入れる。分割払い：計算ロジックとAPI（TDD） | 分割払い：画面。スキル②を通してPRを出し、レビューする | 各hookがわざとした違反を止める。分割払いがEC2上の画面から使える。カバレッジ90%以上 |
 | 11/23（月・祝） | 予備日 | 予備日 | 遅れがなければ休み。遅れていれば作業日にする |
@@ -40,7 +40,7 @@
 |---|---|---|---|
 | Day1 | PreToolUse：危険なコマンド（`rm -rf`、`git push --force`など）と`.env`の読み取りをブロック | mainブランチの保護設定（Day2以降はPRで進める） | Superpowers・SpecKitを導入（既製品） |
 | Day2 | — | — | 自作①：金額計算のレビュー（ADRの「BigDecimal」「端数処理」を照合先にする） |
-| Day3 | PostToolUse：編集後に自動でフォーマットと関連テスト。PreToolUseの許可リスト見直し（`rm -rf build`などが邪魔になった場合） | lefthook：pre-commit（フォーマット・lint・シークレット検知）、commit-msg（メッセージの形式チェック）。RulesetにCI必須を追加 | devcontainer.jsonでSuperpowersを自動で入れる（環境の再現性） |
+| Day3 | PostToolUse：編集後に自動でフォーマットと関連テスト。PreToolUseの許可リスト見直し（`rm -rf target`などが邪魔になった場合） | lefthook：pre-commit（フォーマット・lint・シークレット検知）、commit-msg（メッセージの形式チェック）。RulesetにCI必須を追加 | devcontainer.jsonでSuperpowersを自動で入れる（環境の再現性） |
 | Day5 | Stop：作業を終える前にテストとカバレッジを確認 | pre-push：テスト全件とカバレッジ90% | 自作②：PR前の確認（テスト・カバレッジ・`/speckit.analyze`・レビューをまとめて実行） |
 | Day6〜 | 運用で困ったら追加・調整 | 同左 | 同左 |
 
