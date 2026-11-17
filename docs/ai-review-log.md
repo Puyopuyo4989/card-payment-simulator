@@ -19,10 +19,9 @@ AIの出力や手順を、4つの問いで疑って確かめた記録。
 | 6 | 11/16 | mainブランチの保護 | 前提 | GitHubの料金プラン | 無料プランのPrivateリポジトリでは、ブランチ保護のルールが効かない | Publicに変更してRulesetを設定 → mainへ直接pushして拒否されるか確認 → 拒否された |
 | 7 | 11/16 | Public化前の確認 | 照合 | `git log --stat` | コミット済みのファイルに、`.env`・APIキー・`settings.local.json`はなかった | 履歴を確認 → 問題なし。`.specify/init-options.json`と`integration.json`の中身の確認 → 問題なし。 |
 | 8 | 11/16 | PreToolUseのhook（初版） | 代替 | 依頼内容 | 禁止リストにすり抜けがある（`git push origin +main`、`find -delete`、`eval`、`git clean -f`など） | 単体でJSONを流してすり抜けを確認 → テストを先に書いてred → 修正してgreen。完全な網羅はできないので、目的を「AIのうっかりミス防止」と定め、Ruleset・permissions.denyとの多層防御で補う |
-| 8 | 11/16 | PreToolUseのhook（初版） | 代替 | 依頼内容 | 禁止リストにすり抜けがある（`git push origin +main`、`find -delete`、`eval`、`git clean -f`など） | 単体でJSONを流してすり抜けを確認 → テストを先に書いてred → 修正してgreen。完全な網羅はできないので、目的を「AIのうっかりミス防止」と定め、Ruleset・permissions.denyとの多層防御で補う |
 | 9 | 11/16 | hookが効かなくなる条件 | 前提 | Claude Codeのhookの仕様 | hookが`deny`か終了コード2以外のエラーで終わると、操作がそのまま通る（例：`python3`が無い）。気づきにくい | `python3 --version`でPythonが入っていることを確認 → `/hooks`でhookが登録されていることを確認 → 本物のClaude Codeに`git push origin +main`を頼む → ブロックされた（hookが実際に効いていることを確認） |
 | 10 | 11/16 | permissions.deny | 前提 | Claude Codeの設定の仕様 | denyはallowより優先されるので、「.env.*から.env.exampleだけ除く」は書けない（レビュー役の想定が外れていた） | AIの説明どおり名前を列挙する方式にした → .env.exampleがClaude Codeから読めるか確認 → 結果：未 |
-| 11 | 11/16 | PreToolUseのhook（修正版） | 代替 | ふだんの開発操作 | 止めすぎがある（`rm -rf build`、`find -delete`、`echo .env >> .gitignore`など） | 止まっても別の手段（`./gradlew clean`、Editツール）で進められるので許容。Day3で邪魔なら許可リストを見直す |
+| 11 | 11/16 | PreToolUseのhook（修正版） | 代替 | ふだんの開発操作 | 止めすぎがある（`rm -rf build`、`find -delete`、`echo .env >> .gitignore`など） | 止まっても別の手段（`./gradlew clean`、Editツール）で進められるので許容。Day3で邪魔なら許可リストを見直す。※11/17：ビルドツールはMavenに変更（ADR 0002）。Mavenでは`./mvnw clean`、出力先は`target` |
 | 12 | 11/16 | AIの完了報告「全17テストgreen」 | 照合 | redの表のケース数（31件） | 報告のテスト数と、表のケース数が合わない（subTestと推測） | 自分で`python3 -m unittest discover -s .claude/hooks/tests -v`を実行して件数と結果を確認 → 結果：未 |
 
 ## 理解したこと（メモ）
