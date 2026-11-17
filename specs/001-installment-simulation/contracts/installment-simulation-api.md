@@ -24,6 +24,8 @@ Content-Type: application/json
 3項目とも、画面に入力された値を**変換しないで**文字列のまま送る。値の解釈とチェックはサーバーが行う
 （[data-model.md](../data-model.md)「入力（文字列）の解釈のルール」）。
 
+項目に JSON の数値が来たとき（例：`"amount": 100000`）も、文字列として受け付け、同じルールで確かめる。
+
 ```json
 {
   "amount": "100000",
@@ -42,7 +44,7 @@ Content-Type: application/json
 
 | 項目 | 型 | 内容 |
 |---|---|---|
-| `totalFee` | integer | 手数料の総額 |
+| `totalFee` | integer | 手数料の合計 |
 | `totalPayment` | integer | 支払総額 |
 | `firstPayment` | integer | 初回の支払額 |
 | `subsequentPayment` | integer | 2回目以降の支払額 |
