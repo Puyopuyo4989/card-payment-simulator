@@ -52,7 +52,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T010 `pom.xml` に frontend-maven-plugin 2.0.2 を足す：`workingDirectory` は `frontend`、`nodeVersion` は `v24.22.3`（あとで作る devcontainer.json も同じ版にする。research.md R3）。実行は `install-node-and-npm`・`npm ci`・`npm run build` を `generate-resources`、`npm test` を `test` のフェーズで行う
 - [x] T011 `pom.xml` に maven-resources-plugin の `copy-resources` を足し、`process-resources` のフェーズで `frontend/dist/` を `target/classes/static/` にコピーする
 - [x] T012 `./mvnw package` を実行し、確かめる：バックエンドとフロントのテストがどちらも動く、`target/` に jar が1つだけできる、`unzip -l target/*.jar | grep static/index.html` で1行出る、`java -jar target/*.jar` で `http://localhost:8080/` に見出しが表示される（[quickstart.md](quickstart.md) 2）
-- [ ] T013 カバレッジの閾値を設定する：[ADR 0006](../../docs/adr/0006-カバレッジ基準.md) で人が計測ツールと除外対象を決めて Accepted にしたあと、その内容で、行・分岐とも90%未満なら `./mvnw verify` が失敗するようにする（バックエンドは `pom.xml`、フロントは `frontend/vite.config.ts` の `coverage.thresholds`）。**ADR 0006 は Day3 に別のPRで決定予定。決まるまで、このタスクは始めない。ADR にない除外をしない**
+- [x] T013 カバレッジの閾値を設定する：[ADR 0006](../../docs/adr/0006-カバレッジ基準.md) で人が計測ツールと除外対象を決めて Accepted にしたあと、その内容で、行・分岐とも90%未満なら `./mvnw verify` が失敗するようにする（バックエンドは `pom.xml`、フロントは `frontend/vite.config.ts` の `coverage.thresholds`）。**ADR 0006 は Day3 に別のPRで決定予定。決まるまで、このタスクは始めない。ADR にない除外をしない**
 
 **Checkpoint**: 1つの jar で画面が開く。ここで一度 PR を出してよい。
 
