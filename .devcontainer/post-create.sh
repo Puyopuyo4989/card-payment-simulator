@@ -67,5 +67,17 @@ tar -xzf "$TMP_DIR/$GITLEAKS_FILE" -C "$BIN_DIR" gitleaks
 echo "==> フロントの依存（Prettier を含む）を入れる"
 npm ci --prefix frontend
 
+# Claude Code の PostToolUse hook（format_and_test.py）はコマンド 1 つを 25 秒で打ち切る。
+# 初回の ./mvnw は Maven 本体・依存・Spotless（google-java-format）のダウンロードで遅いので、ここで済ませておく。
+# spotless:apply だとファイルを書き換えてしまうので、確認だけの spotless:check を使う。
+echo "==> Maven の依存と Spotless を先にダウンロードしておく"
+if ./mvnw --quiet --batch-mode dependency:go-offline spotless:check; then
+  echo "==> Maven の依存と Spotless をダウンロードした"
+else
+  # フォーマットのずれやネットワークの失敗でも、コンテナ自体は使えるようにする（失敗は表示して続ける）。
+  echo "!! Maven の準備が途中で失敗した。初回の hook がタイムアウトしたら、ターミナルで次を実行する：" >&2
+  echo "   ./mvnw dependency:go-offline spotless:check" >&2
+fi
+
 echo "==> git hooks を入れる（lefthook install）"
 "$BIN_DIR/lefthook" install
