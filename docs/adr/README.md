@@ -18,7 +18,7 @@
 | [0003](0003-リポジトリと成果物.md) | リポジトリと成果物：リポジトリ1つ、フロントを同梱した1つのjar | Accepted |
 | [0004](0004-開発環境.md) | 開発環境：GitHub Codespaces | Accepted |
 | [0005](0005-金額計算と端数処理.md) | 金額計算と端数処理：BigDecimal、1円未満切り捨て | Accepted |
-| [0006](0006-カバレッジ基準.md) | カバレッジ基準：行・分岐とも90% | Proposed |
+| [0006](0006-カバレッジ基準.md) | カバレッジ基準：行・分岐とも90% | Accepted |
 | [0007](0007-ツールの使い分け.md) | ツールの使い分け：SpecKitとSuperpowers | Accepted |
 | [0008](0008-品質の多層防御.md) | 品質の多層防御：Claude Code hooks、git hooks、CI＋Ruleset | Accepted |
 | [0009](0009-デプロイ構成.md) | デプロイ構成：EC2上のdocker compose、GHCR、OIDC＋SSM | Accepted |
@@ -28,6 +28,4 @@
 
 ## TODO が残っているもの
 
-| ADR | 残っている項目 |
-|---|---|
-| 0006 | 計測ツールと除外対象（Day3で決定）、検討した他の案 |
+なし。
