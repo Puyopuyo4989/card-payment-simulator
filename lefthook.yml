@@ -22,5 +22,9 @@ pre-commit:
 
 commit-msg:
   jobs:
+    # pre-commit はコミットするファイルがないと（git commit --allow-empty）飛ばされるので、ここでも止める
+    - name: main への直接コミットを禁止する
+      run: bash .lefthook/deny-main-commit.sh
+
     - name: Conventional Commits の形式を確かめる
       run: bash .lefthook/check-commit-msg.sh {1}
