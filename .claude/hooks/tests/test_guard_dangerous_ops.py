@@ -152,6 +152,134 @@ class TestBypassCases(HookTestCase):
             self.assertBashBlocked(cmd)
 
 
+# ------------------------------------------------------------------ git hooks の回避（--no-verify）
+
+
+class TestNoVerify(HookTestCase):
+    def test_git_commit_no_verify(self):
+        for cmd in [
+            "git commit --no-verify -m 'fix: x'",
+            "git commit -m 'fix: x' --no-verify",
+            "git commit -n -m 'fix: x'",
+            "git commit -nm 'fix: x'",
+            "git commit -anm 'fix: x'",
+            "git commit -am 'fix: x' -n",
+            "git -C repo commit --no-verify -m x",
+            "git add . && git commit -n -m x",
+            'bash -c "git commit -n -m x"',
+        ]:
+            self.assertBashBlocked(cmd)
+
+    def test_git_push_no_verify(self):
+        for cmd in [
+            "git push --no-verify",
+            "git push --no-verify origin main",
+            "git push -u origin feature/x --no-verify",
+        ]:
+            self.assertBashBlocked(cmd)
+
+    def test_similar_options_are_allowed(self):
+        for cmd in [
+            # -m などの値に入った -n / --no-verify はオプションではない
+            "git commit -m -n",
+            "git commit -mnope",
+            "git commit -m 'docs: --no-verify を禁止する'",
+            "git commit --message -n",
+            "git commit --message --no-verify",
+            "git commit -F notes.txt",
+            "git commit -C HEAD",
+            # git push の -n は --dry-run
+            "git push -n",
+            "git push -n origin main",
+            "git push --dry-run origin main",
+            # ほかのサブコマンドの -n
+            "git log -n 5",
+            "git clean -n",
+        ]:
+            self.assertBashAllowed(cmd)
+
+    def test_no_verify_abbreviations(self):
+        # git は一意に決まる省略形を受け付ける（--no-veri から --no-verify になる）
+        for cmd in [
+            "git commit --no-veri -m x",
+            "git commit --no-verif -m x",
+            "git push --no-veri origin main",
+            "git push --no-verif",
+        ]:
+            self.assertBashBlocked(cmd)
+
+    def test_unrelated_abbreviations_are_allowed(self):
+        for cmd in [
+            "git commit --amen --no-e",  # --amend --no-edit
+            "git push --dry origin main",  # --dry-run
+            # --no-verbose とも読めるので、git が「曖昧」としてエラーにする
+            "git commit --no-ver -m x",
+            "git push --no-v",
+            "git commit --verify -m x",
+        ]:
+            self.assertBashAllowed(cmd)
+
+    def test_lefthook_skip_env_vars(self):
+        for cmd in [
+            "LEFTHOOK=0 git commit -m x",
+            "LEFTHOOK=false git push",
+            "LEFTHOOK_EXCLUDE=gitleaks git commit -m x",
+            "LEFTHOOK_CONFIG=/tmp/empty.yml git commit -m x",
+            "LEFTHOOK_BIN=true git push",
+            "env LEFTHOOK=0 git commit -m x",
+            "FOO=1 LEFTHOOK=0 git commit -m x",
+            "git add . && LEFTHOOK=0 git commit -m x",
+            'bash -c "LEFTHOOK=0 git push"',
+            # 同じシェルのあとのコマンドにも効く
+            "export LEFTHOOK=0 && git commit -m x",
+            "export LEFTHOOK_EXCLUDE=gitleaks; git push",
+        ]:
+            self.assertBashBlocked(cmd)
+
+    def test_other_env_vars_are_allowed(self):
+        for cmd in [
+            "FOO=1 git commit -m x",
+            "GIT_AUTHOR_NAME=a git commit -m x",
+            "export FOO=1 && git push",
+            # 表示を変えるだけの lefthook の環境変数
+            "LEFTHOOK=1 git commit -m x",
+            "LEFTHOOK_VERBOSE=1 git commit -m x",
+            "LEFTHOOK_OUTPUT=summary git push",
+            # git 以外のコマンド・代入ではない文字列
+            "LEFTHOOK=0 npm test",
+            "echo LEFTHOOK=0",
+        ]:
+            self.assertBashAllowed(cmd)
+
+    def test_hooks_path_change(self):
+        for cmd in [
+            "git -c core.hooksPath=/dev/null commit -m x",
+            "git -c core.hookspath=/dev/null push",
+            "git -C repo -c core.hooksPath=/tmp/x commit -m x",
+            "git --config-env=core.hooksPath=HP commit -m x",
+            "git config core.hooksPath /dev/null",
+            "git config --local core.hooksPath .nohooks",
+            "git config --global core.hooksPath /tmp/x",
+            "git config set core.hooksPath /dev/null",
+            "git config --unset core.hooksPath",
+            "git config unset core.hooksPath",
+        ]:
+            self.assertBashBlocked(cmd)
+
+    def test_other_git_config_is_allowed(self):
+        for cmd in [
+            "git config user.name 'a'",
+            "git config --global user.email a@example.com",
+            "git -c user.name=a commit -m x",
+            "git config --list",
+            # 読むだけ
+            "git config core.hooksPath",
+            "git config --get core.hooksPath",
+            "git config get core.hooksPath",
+        ]:
+            self.assertBashAllowed(cmd)
+
+
 # ------------------------------------------------------------------ 許可すべきケース
 
 
