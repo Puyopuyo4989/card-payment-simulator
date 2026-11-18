@@ -9,6 +9,9 @@
       git push --force / -f / refspec 先頭の +（git push origin +main）
       git reset --hard
       git clean -f（-fd, -fdx などを含む）
+      git commit --no-verify / -n（-anm などを含む）、git push --no-verify（push の -n は --dry-run なので許可）
+        --no-veri / --no-verif などの省略形、LEFTHOOK=0 や LEFTHOOK_EXCLUDE などを付けた git commit / push、
+        export LEFTHOOK=0、git -c core.hooksPath=...、git config での core.hooksPath の変更
       find -delete、find -exec / -execdir で上記の危険コマンドを実行するもの
       eval / bash -c 経由で上記を実行するもの
   - .env / .env.* の読み書き（.env.example は除く）
@@ -97,11 +100,17 @@ def split_segments(tokens: list) -> list:
     return segments
 
 
-def strip_wrappers(seg: list) -> list:
+ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def strip_wrappers(seg: list):
+    """前置き（FOO=bar, sudo, env など）を外し、(実体のコマンド, 前置きの環境変数の代入) を返す。"""
+    assignments = []
     i = 0
     while i < len(seg):
         tok = seg[i]
-        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tok):  # FOO=bar cmd
+        if ASSIGNMENT_RE.match(tok):  # FOO=bar cmd
+            assignments.append(tok)
             i += 1
         elif os.path.basename(tok) in WRAPPERS:
             i += 1
@@ -111,7 +120,7 @@ def strip_wrappers(seg: list) -> list:
             i += 1
         else:
             break
-    return seg[i:]
+    return seg[i:], assignments
 
 
 def check_rm(args: list):
@@ -145,13 +154,144 @@ def git_subcommand(args: list):
     return None, []
 
 
+def is_hooks_path_key(key: str) -> bool:
+    return key.split("=", 1)[0].lower() == "core.hookspath"
+
+
+def git_overrides_hooks_path(args: list) -> bool:
+    """git -c core.hooksPath=... / --config-env=core.hooksPath=... で hook の置き場所を変えているか。"""
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "-c" and i + 1 < len(args) and is_hooks_path_key(args[i + 1]):
+            return True
+        if a.startswith("--config-env=") and is_hooks_path_key(a.removeprefix("--config-env=")):
+            return True
+        if a in ("-C", "-c", "--git-dir", "--work-tree", "--namespace"):
+            i += 2
+        elif a.startswith("-"):
+            i += 1
+        else:
+            break
+    return False
+
+
+# git config の値を取るオプション（-f file など）。次のトークンはキーや値ではない
+CONFIG_OPTS_WITH_VALUE = {"-f", "--file", "--blob", "--type", "--default", "--comment"}
+# git config の書き込みのオプション
+CONFIG_WRITE_OPTS = {"--unset", "--unset-all", "--add", "--replace-all"}
+# git config の読むだけのオプション（--get key value-pattern のように、キーのあとに値が来ても書き込みではない）
+CONFIG_READ_OPTS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list"}
+
+
+def config_writes_hooks_path(args: list) -> bool:
+    """git config で core.hooksPath を書き換えるか（設定・--unset とも）。読むだけなら False。"""
+    options, positionals = [], []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in CONFIG_OPTS_WITH_VALUE:
+            i += 1
+        elif a.startswith("-"):
+            options.append(a)
+        else:
+            positionals.append(a)
+        i += 1
+    if positionals and positionals[0] in ("set", "unset"):  # git config set / unset（git 2.46 以降）
+        return len(positionals) >= 2 and is_hooks_path_key(positionals[1])
+    if not positionals or not is_hooks_path_key(positionals[0]):
+        return False
+    if any(o in CONFIG_READ_OPTS for o in options):
+        return False
+    return len(positionals) >= 2 or any(o in CONFIG_WRITE_OPTS for o in options)
+
+
+# lefthook の環境変数のうち、表示を変えるだけのもの。ほかの LEFTHOOK_*（EXCLUDE, CONFIG, BIN など）は
+# チェックを飛ばしたり差し替えたりできるのでブロックする
+LEFTHOOK_HARMLESS_VARS = {"LEFTHOOK_OUTPUT", "LEFTHOOK_VERBOSE"}
+
+
+def lefthook_skip_var(assignment: str):
+    """lefthook のチェックを飛ばす環境変数の代入なら、その変数名を返す。"""
+    name, _, value = assignment.partition("=")
+    if name == "LEFTHOOK":
+        return None if value.lower() in ("1", "true") else name
+    if name.startswith("LEFTHOOK_") and name not in LEFTHOOK_HARMLESS_VARS:
+        return name
+    return None
+
+
 def has_short_flag(args: list, flag: str) -> bool:
     """-f や -fdx のような短いオプションの束に flag が含まれるか。"""
     return any(a.startswith("-") and not a.startswith("--") and flag in a[1:] for a in args)
 
 
-def check_git(args: list):
+# git commit の短いオプションのうち、値を取るもの（-m msg / -mmsg など）。この文字より後ろは値なので見ない
+COMMIT_SHORT_OPTS_WITH_VALUE = set("mFCct")
+# 値を省略できるもの（-S<keyid>, -u<mode>）。値は同じトークンにくっつけて書くので、次のトークンは値ではない
+COMMIT_SHORT_OPTS_WITH_OPTIONAL_VALUE = set("Su")
+# 値を次のトークンに書ける長いオプション（--message msg など）
+COMMIT_LONG_OPTS_WITH_VALUE = {
+    "--message", "--file", "--reuse-message", "--reedit-message", "--template", "--author",
+    "--date", "--fixup", "--squash", "--cleanup", "--trailer", "--pathspec-from-file",
+}
+
+
+def options_before_double_dash(args: list) -> list:
+    return args[: args.index("--")] if "--" in args else args
+
+
+# git は一意に決まる省略形を受け付ける。--no-ver より短いと --no-verbose とも読めるので git がエラーにする
+NO_VERIFY_FORMS = {"--no-veri", "--no-verif", "--no-verify"}
+
+
+def commit_has_no_verify(args: list) -> bool:
+    """git commit の引数に --no-verify / -n（-anm のような束を含む）があるか。-m などの値は見ない。"""
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            break
+        if a in NO_VERIFY_FORMS:
+            return True
+        if a in COMMIT_LONG_OPTS_WITH_VALUE:
+            i += 1
+        elif a.startswith("-") and not a.startswith("--"):
+            for j, c in enumerate(a[1:], start=1):
+                if c == "n":
+                    return True
+                if c in COMMIT_SHORT_OPTS_WITH_VALUE:
+                    if j == len(a) - 1:  # -m msg のように、値が次のトークン
+                        i += 1
+                    break
+                if c in COMMIT_SHORT_OPTS_WITH_OPTIONAL_VALUE:
+                    break
+        i += 1
+    return False
+
+
+NO_VERIFY_REASON = (
+    "{} は禁止されています。lefthook の git hooks（main への直接コミットの禁止・秘密情報の検出・"
+    "フォーマットとメッセージの確認）が飛ばされます。hook が失敗したら、その原因を直してください。"
+)
+
+
+def check_git(args: list, assignments: list):
     sub, rest = git_subcommand(args)
+    if git_overrides_hooks_path(args):
+        return NO_VERIFY_REASON.format("git -c core.hooksPath=...（hook の置き場所の変更）")
+    if sub == "config" and config_writes_hooks_path(rest):
+        return NO_VERIFY_REASON.format("git config での core.hooksPath の変更")
+    if sub in ("commit", "push"):
+        for assignment in assignments:
+            name = lefthook_skip_var(assignment)
+            if name:
+                return NO_VERIFY_REASON.format(f"環境変数 {name} を付けた git {sub}")
+    if sub == "commit" and commit_has_no_verify(rest):
+        return NO_VERIFY_REASON.format("git commit --no-verify（-n）")
+    # git push の -n は --dry-run なので、ブロックするのは --no-verify（と省略形）だけ
+    if sub == "push" and NO_VERIFY_FORMS & set(options_before_double_dash(rest)):
+        return NO_VERIFY_REASON.format("git push --no-verify")
     if sub == "push":
         for a in rest:
             if a == "--":
@@ -193,14 +333,19 @@ def check_segment(seg: list, depth: int):
     """1 つの単純コマンド（区切り記号を含まないトークン列）を判定する。"""
     if depth > 3:
         return None
-    seg = strip_wrappers(seg)
+    seg, assignments = strip_wrappers(seg)
     if not seg:
         return None
     cmd, args = os.path.basename(seg[0]), seg[1:]
     if cmd == "rm":
         return check_rm(args)
     if cmd == "git":
-        return check_git(args)
+        return check_git(args, assignments)
+    if cmd == "export":  # export LEFTHOOK=0 は、同じシェルのあとの git commit / push に効く
+        for a in args:
+            name = lefthook_skip_var(a) if ASSIGNMENT_RE.match(a) else None
+            if name:
+                return NO_VERIFY_REASON.format(f"環境変数 {name} の export")
     if cmd == "find":
         return check_find(args, depth)
     if cmd == "eval":
