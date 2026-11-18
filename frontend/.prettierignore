@@ -1,0 +1,6 @@
+# ビルド成果物・依存・自動生成されるファイルは整形しない
+node/
+node_modules/
+dist/
+coverage/
+package-lock.json

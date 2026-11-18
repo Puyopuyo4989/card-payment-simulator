@@ -90,6 +90,17 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <!-- フォーマットの確認。設定は frontend/.prettierrc.json（ADR 0008） -->
+                        <id>npm-run-format-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run format:check</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <!-- 閾値は frontend/vite.config.ts の coverage.thresholds（ADR 0006） -->
                         <id>npm-run-coverage</id>
                         <phase>verify</phase>
@@ -152,6 +163,30 @@
                                 </rule>
                             </rules>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- フォーマットの確認（spotless:check）と直す（spotless:apply）。
+                     verify で確かめ、lefthook の pre-commit からも動かす（ADR 0008） -->
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <version>2.0.0</version>
+                            <style>AOSP</style>
+                        </googleJavaFormat>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
