@@ -40,18 +40,18 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 
 **Purpose**: Spring Boot とフロントの雛形を作り、`./mvnw package` 1回でフロントを同梱した jar が1つできる状態にする。
 
-- [ ] T001 ルートに Maven のプロジェクトを作る：`pom.xml`（親は `spring-boot-starter-parent` 4.1 系の最新パッチ、`java.version` は 25、groupId `com.example`、artifactId `card-payment-simulator`、依存は `spring-boot-starter-webmvc` と、テスト用に `spring-boot-starter-test`・`spring-boot-starter-webmvc-test`。名前は Spring Boot 4.1 のものを公式のドキュメントで確かめる）。DB のライブラリは入れない（research.md R10）
-- [ ] T002 Maven Wrapper を入れる：`mvnw`・`mvnw.cmd`・`.mvn/wrapper/maven-wrapper.properties`（Maven 3.10.0 に固定）
-- [ ] T003 `.gitignore` に `target/`・`frontend/node_modules/`・`frontend/node/`・`frontend/dist/`・`frontend/coverage/` を足す
-- [ ] T004 [P] 起動のテストを先に書く：`{test}/CardPaymentSimulatorApplicationTests.java`（`@SpringBootTest` でコンテキストが起動する）。red を確かめる
-- [ ] T005 起動クラスを作る：`{main}/CardPaymentSimulatorApplication.java` と `src/main/resources/application.properties`（`spring.application.name=card-payment-simulator` だけ）。T004 が green になる
-- [ ] T006 [P] フロントの雛形を作る：`frontend/package.json`（React・TypeScript・Vite・Vitest・@vitest/coverage-v8・@testing-library/react・@testing-library/user-event・@testing-library/jest-dom・jsdom。版は作成時点の最新の安定版、`package-lock.json` で固定）、`frontend/index.html`、`frontend/tsconfig.json`。scripts は `dev`・`build`・`test`（`vitest run`）・`coverage`
-- [ ] T007 `frontend/vite.config.ts` を作る：出力先は `dist/`（Vite の標準）、開発サーバーは `/api` を `http://localhost:8080` に転送（proxy）、Vitest は `environment: 'jsdom'`・`setupFiles: ['./src/setupTests.ts']`。`frontend/src/setupTests.ts` で `@testing-library/jest-dom/vitest` を読み込む
-- [ ] T008 [P] 画面のテストを先に書く：`frontend/src/App.test.tsx`（見出し「分割払いシミュレーション」が表示される）と `frontend/src/main.test.tsx`（`<div id="root">` を用意して `main.tsx` を読み込むと、その中に見出しが表示される）。`cd frontend && npm test` で red を確かめる
-- [ ] T009 `frontend/src/App.tsx` を作って見出しを表示し、`frontend/src/main.tsx` で `#root` に `App` を表示する。T008 が green になる
-- [ ] T010 `pom.xml` に frontend-maven-plugin 2.0.2 を足す：`workingDirectory` は `frontend`、`nodeVersion` は `v24.22.3`（あとで作る devcontainer.json も同じ版にする。research.md R3）。実行は `install-node-and-npm`・`npm ci`・`npm run build` を `generate-resources`、`npm test` を `test` のフェーズで行う
-- [ ] T011 `pom.xml` に maven-resources-plugin の `copy-resources` を足し、`process-resources` のフェーズで `frontend/dist/` を `target/classes/static/` にコピーする
-- [ ] T012 `./mvnw package` を実行し、確かめる：バックエンドとフロントのテストがどちらも動く、`target/` に jar が1つだけできる、`unzip -l target/*.jar | grep static/index.html` で1行出る、`java -jar target/*.jar` で `http://localhost:8080/` に見出しが表示される（[quickstart.md](quickstart.md) 2）
+- [x] T001 ルートに Maven のプロジェクトを作る：`pom.xml`（親は `spring-boot-starter-parent` 4.1 系の最新パッチ、`java.version` は 25、groupId `com.example`、artifactId `card-payment-simulator`、依存は `spring-boot-starter-webmvc` と、テスト用に `spring-boot-starter-test`・`spring-boot-starter-webmvc-test`。名前は Spring Boot 4.1 のものを公式のドキュメントで確かめる）。DB のライブラリは入れない（research.md R10）
+- [x] T002 Maven Wrapper を入れる：`mvnw`・`mvnw.cmd`・`.mvn/wrapper/maven-wrapper.properties`（Maven 3.10.0 に固定）
+- [x] T003 `.gitignore` に `target/`・`frontend/node_modules/`・`frontend/node/`・`frontend/dist/`・`frontend/coverage/` を足す
+- [x] T004 [P] 起動のテストを先に書く：`{test}/CardPaymentSimulatorApplicationTests.java`（`@SpringBootTest` でコンテキストが起動する）。red を確かめる
+- [x] T005 起動クラスを作る：`{main}/CardPaymentSimulatorApplication.java` と `src/main/resources/application.properties`（`spring.application.name=card-payment-simulator` だけ）。T004 が green になる
+- [x] T006 [P] フロントの雛形を作る：`frontend/package.json`（React・TypeScript・Vite・Vitest・@vitest/coverage-v8・@testing-library/react・@testing-library/user-event・@testing-library/jest-dom・jsdom。版は作成時点の最新の安定版、`package-lock.json` で固定）、`frontend/index.html`、`frontend/tsconfig.json`。scripts は `dev`・`build`・`test`（`vitest run`）・`coverage`
+- [x] T007 `frontend/vite.config.ts` を作る：出力先は `dist/`（Vite の標準）、開発サーバーは `/api` を `http://localhost:8080` に転送（proxy）、Vitest は `environment: 'jsdom'`・`setupFiles: ['./src/setupTests.ts']`。`frontend/src/setupTests.ts` で `@testing-library/jest-dom/vitest` を読み込む
+- [x] T008 [P] 画面のテストを先に書く：`frontend/src/App.test.tsx`（見出し「分割払いシミュレーション」が表示される）と `frontend/src/main.test.tsx`（`<div id="root">` を用意して `main.tsx` を読み込むと、その中に見出しが表示される）。`cd frontend && npm test` で red を確かめる
+- [x] T009 `frontend/src/App.tsx` を作って見出しを表示し、`frontend/src/main.tsx` で `#root` に `App` を表示する。T008 が green になる
+- [x] T010 `pom.xml` に frontend-maven-plugin 2.0.2 を足す：`workingDirectory` は `frontend`、`nodeVersion` は `v24.22.3`（あとで作る devcontainer.json も同じ版にする。research.md R3）。実行は `install-node-and-npm`・`npm ci`・`npm run build` を `generate-resources`、`npm test` を `test` のフェーズで行う
+- [x] T011 `pom.xml` に maven-resources-plugin の `copy-resources` を足し、`process-resources` のフェーズで `frontend/dist/` を `target/classes/static/` にコピーする
+- [x] T012 `./mvnw package` を実行し、確かめる：バックエンドとフロントのテストがどちらも動く、`target/` に jar が1つだけできる、`unzip -l target/*.jar | grep static/index.html` で1行出る、`java -jar target/*.jar` で `http://localhost:8080/` に見出しが表示される（[quickstart.md](quickstart.md) 2）
 - [ ] T013 カバレッジの閾値を設定する：[ADR 0006](../../docs/adr/0006-カバレッジ基準.md) で人が計測ツールと除外対象を決めて Accepted にしたあと、その内容で、行・分岐とも90%未満なら `./mvnw verify` が失敗するようにする（バックエンドは `pom.xml`、フロントは `frontend/vite.config.ts` の `coverage.thresholds`）。**ADR 0006 は Day3 に別のPRで決定予定。決まるまで、このタスクは始めない。ADR にない除外をしない**
 
 **Checkpoint**: 1つの jar で画面が開く。ここで一度 PR を出してよい。
