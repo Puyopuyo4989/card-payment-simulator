@@ -1,0 +1,26 @@
+# git hooks の設定（ADR 0008 の層②）。
+# 入れ方：lefthook install（devcontainer の post-create.sh で自動で行う）
+# 飛ばし方：git commit --no-verify（CI と Ruleset で最後に止める）
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: main への直接コミットを禁止する
+      run: bash .lefthook/deny-main-commit.sh
+
+    - name: gitleaks で秘密情報を探す
+      run: gitleaks git --pre-commit --staged --redact --verbose
+
+    - name: Spotless で Java のフォーマットを確かめる
+      glob: "*.java"
+      run: bash .lefthook/spotless-check.sh {staged_files}
+
+    - name: Prettier でフロントのフォーマットを確かめる
+      root: "frontend/"
+      glob: "*.{js,jsx,ts,tsx,json,css,html,md}"
+      run: npx --no-install prettier --check {staged_files}
+
+commit-msg:
+  jobs:
+    - name: Conventional Commits の形式を確かめる
+      run: bash .lefthook/check-commit-msg.sh {1}
