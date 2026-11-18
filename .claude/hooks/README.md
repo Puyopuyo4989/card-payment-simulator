@@ -67,3 +67,75 @@ python3 -m unittest discover -s .claude/hooks/tests -v
 
 ブロック対象を増やすときは、先に `tests/test_guard_dangerous_ops.py` にケースを足し、
 失敗することを確認してからスクリプトを直してください。
+
+## format_and_test.py
+
+`.claude/settings.json` の `PostToolUse` hook から呼ばれ、Claude が `Edit` / `Write` / `MultiEdit` で
+ファイルを変えた **あと** に、そのファイルをフォーマットし、フロントは関係するテストを動かします。
+
+### やること
+
+| 変更したファイル | やること |
+|------------------|----------|
+| `src/**/*.java` | そのファイルだけを Spotless（`spotless:apply`）でフォーマットする。テストは動かさない（Stop の hook で動かす予定） |
+| `frontend/src/**/*.ts`, `*.tsx` | そのファイルを Prettier でフォーマットし、`vitest related` でそのファイルに関係するテストだけを動かす |
+| それ以外 | 何もしない |
+
+フォーマットやテストが失敗したときは、`decision: "block"` と失敗の出力（末尾 4000 文字まで）を Claude に返します。
+PostToolUse の時点で編集は済んでいるので、編集が取り消されるわけではありません。Claude が出力を読んで直します。
+
+関係するテストがないファイルでも失敗にしないよう、`vitest related` には `--passWithNoTests` を付けています。
+
+### タイムアウト
+
+| 制限 | 秒数 | 場所 |
+|------|------|------|
+| hook 全体 | 60 秒 | `.claude/settings.json` の `PostToolUse` の `timeout` |
+| コマンド 1 つ | 25 秒 | `format_and_test.py` の `COMMAND_TIMEOUT` |
+
+フロントは 2 つのコマンド（Prettier と vitest related）を順に動かすので、合わせても 60 秒に収まるよう 25 秒にしています。
+コマンドが 25 秒を超えたときは、`25 秒でタイムアウトしました` を失敗として Claude に返します。
+どちらかの秒数を変えるときは、もう一方も見直してください。
+
+コマンド 1 つの制限は、環境変数 `FORMAT_AND_TEST_TIMEOUT`（秒）で上書きできます。
+テストで制限を短くするためのもので、ふだんは設定しません。
+
+初回の `./mvnw` は Maven 本体・依存・Spotless のダウンロードで 25 秒を超えることがあります。
+そのため `.devcontainer/post-create.sh` で、コンテナを作るときに `./mvnw dependency:go-offline spotless:check` を動かしてダウンロードを済ませています。
+これが失敗していて初回の hook がタイムアウトしたら、ターミナルで同じコマンドを一度実行してください。
+
+### テスト
+
+`guard_dangerous_ops.py` と同じく `unittest` だけで書いています（上の「テスト」のコマンドでまとめて動きます）。
+
+本物の Maven・Prettier・vitest は動かしません。一時ディレクトリを `CLAUDE_PROJECT_DIR` にして、
+`./mvnw` と `npx` を「呼ばれた引数を記録し、指定した呼び出しだけ失敗する」偽物に差し替え、
+どのファイルでどのコマンドが呼ばれるか、失敗が Claude に返るかを確かめます。
+
+タイムアウトのテストでは、`FORMAT_AND_TEST_TIMEOUT=1` で制限を 1 秒にして、偽の `npx` を `exec sleep 5` で待たせます。
+`exec` を付けないと、時間切れでシェルを止めても `sleep` が残って出力を読み終えられず、テストが固まります。
+
+### 実際の動きを確かめる手順
+
+Claude Code を **起動し直してから**（hook の設定は起動時に読まれます）、次のように頼みます。
+`/hooks` で `PostToolUse` に `format_and_test.py` が入っていることも確認できます。
+
+1. **Java のフォーマットが直ること**
+   - 頼む：「`src/main/java/com/example/cardpayment/CardPaymentSimulatorApplication.java` の
+     `public class` を `public     class` にして、インデントをタブにして。フォーマットは直さないで」
+   - 確かめる：編集のあと `git diff` に差分がない（Spotless が元のフォーマットに戻した）。
+2. **フロントのフォーマットが直ること**
+   - 頼む：「`frontend/src/App.tsx` の `export default` を `export     default` にして、
+     セミコロンを付けて。フォーマットは直さないで」
+   - 確かめる：`git diff` に差分がない（Prettier が戻した）。Claude の画面にテストの失敗は出ない。
+3. **テストの失敗が Claude に返ること**
+   - 頼む：「`frontend/src/App.tsx` の見出しを『分割払い』に変えて。テストは直さないで」
+   - 確かめる：編集のあと `PostToolUse:Edit hook ... vitest related が失敗しました` と出て、
+     Claude が `App.test.tsx` の `見出し「分割払いシミュレーション」が表示される` が落ちたことに触れる。
+     （「テストは直さないで」を外すと、Claude がそのまま直しにいきます）
+4. **それ以外のファイルでは何もしないこと**
+   - 頼む：「`README.md` の末尾に空行を 1 つ足して」
+   - 確かめる：hook のメッセージが出ず、すぐ終わる。
+5. 後片付け：`git restore src frontend/src README.md` で戻す。
+
+`claude --debug` で起動すると、hook に渡った入力と出力を詳しく見られます。
