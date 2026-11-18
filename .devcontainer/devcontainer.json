@@ -1,0 +1,26 @@
+{
+  "name": "card-payment-simulator",
+  "image": "mcr.microsoft.com/devcontainers/base:3.0.13-noble",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1.8.3": {
+      "version": "25",
+      "jdkDistro": "tem",
+      "installMaven": "false",
+      "installGradle": "false"
+    },
+    "ghcr.io/devcontainers/features/node:2.1.2": {
+      "version": "24.22.3",
+      "pnpmVersion": "none"
+    },
+    "ghcr.io/devcontainers/features/python:1.8.1": {
+      "version": "os-provided",
+      "installTools": "false"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1.1.3": {
+      "version": "2.103.3"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:4.1.3": {}
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}
