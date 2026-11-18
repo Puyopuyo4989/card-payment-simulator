@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# 最小限の権限にする（リポジトリの読み取りだけ）
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得する
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Java 25（Temurin）を用意する
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          # ~/.m2/repository をキャッシュする。
+          # frontend-maven-plugin がダウンロードする Node.js も ~/.m2/repository に置かれるので、これでキャッシュされる
+          cache: maven
+          cache-dependency-path: pom.xml
+
+      - name: ビルド・テスト・カバレッジを確認する
+        run: ./mvnw --batch-mode --no-transfer-progress verify
