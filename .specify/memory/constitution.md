@@ -1,5 +1,23 @@
 <!--
 Sync Impact Report
+[1.1.0 — 2026-11-18]
+- Version change: 1.0.0 → 1.1.0（MINOR：原則IVの対象を個人情報まで広げたため）
+- Modified principles:
+  - IV. カード情報はダミーだけを使う（NON-NEGOTIABLE）
+    → IV. カード情報と個人情報はダミーだけを使う（NON-NEGOTIABLE）
+    - 追加：本物の個人情報（氏名・生年月日・電話番号・勤務先・年収・担当者名など）を
+      扱わない（MUST NOT）。コード・テストデータ・ログ・ドキュメントに入れない
+    - 追加：個人情報はダミーだけを使う（MUST）
+    - 理由に追加：申込管理で個人情報の形をしたデータを扱うため
+    - カード番号についての既存の内容は変更なし
+- Added sections: none
+- Removed sections: none
+- Templates: not modified (plan/spec/tasks templates read this file at runtime)
+- Follow-up TODOs:
+  - 既存の仕様・計画・テストデータに本物の個人情報が入っていないか確認する
+    （Governance「原則を変えたときは、影響する仕様・設計・ADRも直す」）
+
+[1.0.0 — 2026-11-17]
 - Version change: (template, unversioned) → 1.0.0
 - Modified principles: none (initial adoption). Template had 5 principle slots; 9 adopted per user input.
   - I. TDD必須（NON-NEGOTIABLE）
@@ -59,14 +77,18 @@ Sync Impact Report
 
 理由：浮動小数点の誤差や丸めの不一致は、利用者に見せる金額の誤りに直結し、後から気づきにくい。
 
-### IV. カード情報はダミーだけを使う（NON-NEGOTIABLE）
+### IV. カード情報と個人情報はダミーだけを使う（NON-NEGOTIABLE）
 
 - 本物のカード番号を扱ってはならない（MUST NOT）。コード・テストデータ・ログ・ドキュメントの
   どこにも入れない。
 - カード番号はダミーだけを使う（MUST）。
 - 画面にカード番号を表示するときは、マスクしなければならない（MUST）。
+- 本物の個人情報（氏名・生年月日・電話番号・勤務先・年収・担当者名など）を扱ってはならない
+  （MUST NOT）。コード・テストデータ・ログ・ドキュメントのどこにも入れない。
+- 個人情報はダミーだけを使う（MUST）。
 
 理由：シミュレーターであっても、カード情報を扱う画面は情報漏えいの入口になりうる。
+また、申込管理で個人情報の形をしたデータを扱うため、個人情報も対象に含める。
 リポジトリはPublicなので、一度コミットした情報は回収できない。
 
 ### V. 構成：APIでつなぎ、1リポジトリ・1jar
@@ -128,4 +150,4 @@ Sync Impact Report
 - **遵守の確認**：`/speckit-plan`のConstitution Checkと`/speckit-analyze`で、各機能が本書に
   従っているかを確かめる。PRのレビューでも確認する。
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-17
+**Version**: 1.1.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18
