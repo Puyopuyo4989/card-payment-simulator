@@ -1,10 +1,12 @@
 # 本番（EC2）用の compose（ADR 0009）。アプリ（GHCR のイメージ）と PostgreSQL を動かす。
 # 値は EC2 に置く .env から読む（コミットしない。constitution 原則VII）。項目の一覧は .env.example。
 # 開発用の初期値は使わず、値がなければ起動を止める。
-# 起動：docker compose -f compose.prod.yaml up -d
+# 起動：IMAGE_TAG=<コミットのハッシュ> docker compose -f compose.prod.yaml up -d
+# ふだんは CI の deploy のジョブが SSM で行う（.github/workflows/ci.yml）
 services:
   app:
-    image: ghcr.io/puyopuyo4989/card-payment-simulator:latest
+    # タグは CI が push したコミットのハッシュ。latest は使わず、どのコミットが動いているかわかるようにする
+    image: ghcr.io/puyopuyo4989/card-payment-simulator:${IMAGE_TAG:?IMAGE_TAG にコミットのハッシュを渡す}
     environment:
       DB_HOST: db
       DB_PORT: 5432
