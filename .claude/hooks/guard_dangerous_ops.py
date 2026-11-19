@@ -16,6 +16,9 @@
       eval / bash -c 経由で上記を実行するもの
   - .env / .env.* の読み書き（.env.example は除く）
     （Read / Write / Edit / MultiEdit / NotebookEdit / Grep、および Bash コマンド内での参照）
+    Bash では「.env.example。」「.env.example,」のように記号が続いても .env.example として扱う。
+    git commit のメッセージ（-m / --message の値と、-F - に渡すヒアドキュメントの本文）は見ない。
+    -F / --file に渡すファイルのパスは見る（-F .env は .env の中身がメッセージになる）
 
 テスト: python3 -m unittest discover -s .claude/hooks/tests -v
 
@@ -33,6 +36,9 @@ import sys
 ENV_FILE_RE = re.compile(r"^\.env([.*?\[].*)?$")
 # 秘密情報を含まないテンプレートなので読み書きを許可する
 ENV_ALLOWED_NAMES = {".env.example"}
+
+# Bash のトークンの中で、ファイル名の区切りとみなす文字（--env-file=.env, .env.example。など）
+ENV_PART_SEPARATOR_RE = re.compile(r"[=:,`、。，「」『』（）]")
 
 # コマンドの区切りとみなすトークン（;, &&, ||, |, &, (, ) など）
 SEPARATOR_RE = re.compile(r"^[;&|()]+$")
@@ -357,18 +363,105 @@ def check_segment(seg: list, depth: int):
     return None
 
 
+def commit_message_indices(args: list) -> set:
+    """git commit の引数のうち、コミットメッセージ（-m / --message の値）の位置を返す。
+
+    -F / --file の値はファイルのパスなので含めない（-F .env は .env の中身がメッセージになる）。
+    """
+    indices = set()
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            break
+        if a == "--message":
+            indices.add(i + 1)
+            i += 1
+        elif a.startswith("--message="):
+            indices.add(i)
+        elif a in COMMIT_LONG_OPTS_WITH_VALUE:
+            i += 1
+        elif a.startswith("-") and not a.startswith("--"):
+            for j, c in enumerate(a[1:], start=1):
+                if c in COMMIT_SHORT_OPTS_WITH_VALUE:
+                    if j == len(a) - 1:  # -m msg のように、値が次のトークン
+                        if c == "m":
+                            indices.add(i + 1)
+                        i += 1
+                    elif c == "m":  # -mmsg
+                        indices.add(i)
+                    break
+                if c in COMMIT_SHORT_OPTS_WITH_OPTIONAL_VALUE:
+                    break
+        i += 1
+    return indices
+
+
+def git_commit_args_offset(seg: list):
+    """seg が git commit なら、commit のあとの引数が seg の何番目から始まるかを返す。違えば None。"""
+    cmd_tokens, _ = strip_wrappers(seg)
+    if not cmd_tokens or os.path.basename(cmd_tokens[0]) != "git":
+        return None
+    args = cmd_tokens[1:]
+    sub, rest = git_subcommand(args)
+    if sub != "commit":
+        return None
+    return len(seg) - len(rest)
+
+
+HEREDOC_RE = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+
+
+def drop_commit_heredocs(command: str) -> str:
+    """git commit -F - <<EOF ... EOF の本文（コミットメッセージ）を取り除く。ほかのヒアドキュメントは残す。"""
+    lines = command.split("\n")
+    result = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        result.append(line)
+        i += 1
+        m = HEREDOC_RE.search(line)
+        if not m:
+            continue
+        heredoc_seg = next((seg for seg in split_segments(tokenize(line)) if "<<" in seg), None)
+        if heredoc_seg is None or git_commit_args_offset(heredoc_seg) is None:
+            continue
+        strip_tabs, delimiter = m.group(1) == "-", m.group(3)
+        while i < len(lines):
+            body = lines[i].lstrip("\t") if strip_tabs else lines[i]
+            i += 1
+            if body == delimiter:
+                break
+    return "\n".join(result)
+
+
+def find_env_reference(seg: list):
+    """1 つの単純コマンドのトークンから .env の参照を探す。git commit のメッセージは見ない。"""
+    offset = git_commit_args_offset(seg)
+    skip = {offset + i for i in commit_message_indices(seg[offset:])} if offset is not None else set()
+    for i, tok in enumerate(seg):
+        if i in skip:
+            continue
+        for part in ENV_PART_SEPARATOR_RE.split(tok):
+            part = part.rstrip(".")  # 文末の「.env.example.」
+            if is_env_path(part):
+                return part
+    return None
+
+
 def check_bash(command: str, depth: int = 0):
     if not isinstance(command, str) or depth > 3:
         return None
-    tokens = tokenize(command)
+    segments = split_segments(tokenize(drop_commit_heredocs(command)))
 
     # .env の参照（cat .env, echo x > .env.local, --env-file=.env など）
-    for tok in tokens:
-        for part in re.split(r"[=:]", tok):
-            if is_env_path(part):
-                return f".env ファイル（{part}）へのアクセスは禁止されています。秘密情報を含むため、Bash からも読み書きできません。"
+    for seg in segments:
+        part = find_env_reference(seg)
+        if part:
+            return f".env ファイル（{part}）へのアクセスは禁止されています。秘密情報を含むため、Bash からも読み書きできません。"
 
-    for seg in split_segments(tokens):
+    for seg in segments:
         reason = check_segment(seg, depth)
         if reason:
             return reason

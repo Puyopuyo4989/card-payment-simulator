@@ -329,5 +329,75 @@ class TestAllowed(HookTestCase):
         self.assertAllowed("Bash", {"command": "ls -la"})
 
 
+# ------------------------------------------------------------------ .env.example と コミットメッセージ
+
+
+class TestEnvExampleInBash(HookTestCase):
+    def test_env_example_followed_by_punctuation(self):
+        # 文の中の .env.example（句読点・記号が続く）は .env.example として扱う
+        for cmd in [
+            "cat >> docs/memo.md <<'EOF'\n項目の一覧は .env.example。\nEOF",
+            "cat >> docs/memo.md <<'EOF'\n- .env.example、compose.yaml を見る\nEOF",
+            "cat >> docs/memo.md <<'EOF'\n`.env.example` を見る\nEOF",
+            "echo 一覧は .env.example.",
+            "grep -n POSTGRES .env.example,compose.yaml",
+        ]:
+            self.assertBashAllowed(cmd)
+
+    def test_env_followed_by_punctuation_is_still_blocked(self):
+        for cmd in [
+            "cat .env。",
+            "cat .env.local,",
+            "cat .env.example。.env",
+            "cat >> docs/memo.md <<'EOF'\n.env.local、\nEOF",
+            "cp .env.example .env",
+        ]:
+            self.assertBashBlocked(cmd)
+
+
+# 前のセッションで実際に止められたコミット（本文の .env はただの文字列）
+HEREDOC_COMMIT = """git add compose.yaml .env.example && git commit -q -F - <<'EOF'
+feat: アプリを PostgreSQL につなぐ
+
+- 項目の一覧は .env.example。.env は .gitignore に足した
+- DB の値は EC2 の .env から読む
+- .env
+EOF"""
+
+
+class TestCommitMessageIsNotEnvAccess(HookTestCase):
+    def test_message_options(self):
+        for cmd in [
+            'git commit -m "x" -m ".env.example。.env は除外"',
+            'git commit -m ".env.local を消す"',
+            'git commit --message ".env.local を消す"',
+            "git commit --message=.env.local",
+            "git commit -m.env.local",
+            'git commit -am ".env.local を消す"',
+            'git -C repo commit -q -m ".env.local を消す"',
+        ]:
+            self.assertBashAllowed(cmd)
+
+    def test_message_from_heredoc(self):
+        self.assertBashAllowed(HEREDOC_COMMIT)
+        self.assertBashAllowed("git commit -F - <<EOF\n.env\nEOF")
+        self.assertBashAllowed("git commit --file=- <<-'EOF'\n\t.env.local\n\tEOF")
+
+    def test_env_outside_message_is_still_blocked(self):
+        for cmd in [
+            "git commit -F .env",  # .env の中身がメッセージになる
+            "git commit --file=.env",
+            "git commit --file .env.local",
+            "git commit -m x .env",
+            "git commit -m x -- .env.local",
+            "git add .env && git commit -m x",
+            HEREDOC_COMMIT + "\ncat .env",  # ヒアドキュメントのあとのコマンド
+            "cat <<'EOF' > .env\nX=1\nEOF",
+            "bash <<'EOF'\ncat .env\nEOF",  # git commit 以外のヒアドキュメントの本文は今までどおり見る
+            'git log -m ".env"',
+        ]:
+            self.assertBashBlocked(cmd)
+
+
 if __name__ == "__main__":
     unittest.main()
