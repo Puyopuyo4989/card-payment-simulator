@@ -1,0 +1,41 @@
+# 本番（EC2）用の compose（ADR 0009）。アプリ（GHCR のイメージ）と PostgreSQL を動かす。
+# 値は EC2 に置く .env から読む（コミットしない。constitution 原則VII）。項目の一覧は .env.example。
+# 開発用の初期値は使わず、値がなければ起動を止める。
+# 起動：docker compose -f compose.prod.yaml up -d
+services:
+  app:
+    image: ghcr.io/puyopuyo4989/card-payment-simulator:latest
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:?DB_NAME を .env に書く}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME を .env に書く}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD を .env に書く}
+    ports:
+      - "8080:8080"
+    depends_on:
+      # DB が接続を受け付けるようになってから起動する
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    # compose.yaml と同じ版にする（ADR 0008 の7日ルール）
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: ${DB_NAME:?DB_NAME を .env に書く}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME を .env に書く}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD を .env に書く}
+    # ports は書かない。外には公開せず、アプリからだけ compose のネットワークでつなぐ
+    volumes:
+      # PostgreSQL 18 以降のイメージは /var/lib/postgresql に保存する
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  db-data:
