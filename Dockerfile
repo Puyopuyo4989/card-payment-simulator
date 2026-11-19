@@ -3,7 +3,7 @@
 # ここではビルドしない。先に ./mvnw package で jar を作っておく。
 
 # 版は固定する。公開から7日以上たった版を使う（ADR 0008）。タグは付け替えられるのでダイジェストでも固定する
-FROM eclipse-temurin:25.0.4.1_1-jre-noble@sha256:ce8543ddd3070ccbeaac2106a74c9387ddeb8d47a1c43348345715c1ef245c7f
+FROM eclipse-temurin:25.0.5_8-jre-noble@sha256:3c6d7b40c2e78d4a8f4fe00af8165c706b34faf672dc21ff0924e583559ec6c2
 
 # root ではない利用者で動かす
 RUN groupadd --system app && useradd --system --gid app --no-create-home app
