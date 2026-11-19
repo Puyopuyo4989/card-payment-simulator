@@ -1,0 +1,25 @@
+# 開発用の PostgreSQL（ADR 0011）。
+# 値は .env（コミットしない）か環境変数で渡す。項目の一覧は .env.example。
+# ここに書いた初期値は開発用で、application.properties の初期値と合わせている。
+services:
+  db:
+    # 版は固定する。公開から7日以上たった版を使う（ADR 0008）。
+    # テストの Testcontainers（src/test/.../TestcontainersConfiguration.java）と同じ版にする
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: ${DB_NAME:-card_payment}
+      POSTGRES_USER: ${DB_USERNAME:-card_payment}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-card_payment}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18 以降のイメージは /var/lib/postgresql に保存する
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:
