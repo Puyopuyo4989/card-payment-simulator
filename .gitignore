@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 memo-*.md
+MEMO-*.md
 *-questions.md
 target/
 frontend/node_modules/

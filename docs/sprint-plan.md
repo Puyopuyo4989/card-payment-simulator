@@ -87,6 +87,7 @@
 |---|---|---|
 | 11/16（月）Day1 | 計画確定。Codespaces・Claude Code・Superpowers・SpecKitを導入。リポジトリをPublic化し、Rulesetでmainを保護（直接pushの拒否を確認）。PreToolUseのhookをTDDで作成（すり抜け対策を追加、ユニットテストgreen、本物のClaude Codeでブロックを確認） | constitutionと3機能の仕様はDay2午前へ。SpecKitのplan／tasksは機能ごとに実装日の直前に行う方式に変更。EC2へのデプロイが必要と判明し、Day4午後にCDを追加 |
 | 11/17（火）Day2 | constitution v1.0.0（ビルドツールはMavenに決定、技術選定はADRへ）。3機能の仕様（分割払い：初回寄せ、リボ払い：元利定額、申込管理：履歴＋否決理由＋担当者名、状態での絞り込み）。認証は作らないと決定。ADR 0001〜0012（0006のみProposed）。分割払いのplan・tasks・analyze（CRITICALを解消）。残業で完了 | 朝にCodespaceを二重に作成して約1.5時間の遅れ。スキル①はDay5へ、ADR 0006はDay3へ。constitution v1.1.0（個人情報）をDay3朝に追加。**11/23は作業しないと決定**し、判断のタイミングを設定 |
+| 11/18（水）Day3 | constitution v1.1.0（個人情報もダミーのみ）。devcontainer（Java 25 Temurin・Node.js 24・Docker、Claude Code・Superpowers・lefthook・gitleaksの自動インストール）。Mavenの土台（1つのjarで画面を表示）。ADR 0006（JaCoCo・@vitest/coverage-v8、除外は最小限）と90%の閾値。CI（GitHub Actions、actionはハッシュで固定し7日ルール）＋RulesetのCI必須。lefthook（mainへの直接コミット禁止・gitleaks・Spotless（AOSP）・Prettier・commit-msg）。PostToolUseのhook（フォーマットと関連テスト）。PreToolUseで--no-verifyなどgit hooksの回避をブロック。Secret scanningとPush protectionを有効化。**判断①：土台は予定どおり完了。削るものなし** | 子プロセスが残るとPostToolUseのタイムアウトが効かない問題（既知の限界としてREADMEに記載）。post-create.shのMavenの準備は、次にコンテナを作り直したときに確認。`.gitignore`に`MEMO-*.md`を追加 |
 
 ## 遅れたときに削る順番
 1. 申込管理のShould（キーワード検索・ページ分け）
