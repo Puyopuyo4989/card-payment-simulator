@@ -1,0 +1,3 @@
+# イメージに入れるのは jar だけ（Dockerfile）。ほかはすべて除く
+*
+!target/*.jar
