@@ -145,6 +145,8 @@ description: "分割払いの支払シミュレーションのタスク一覧"
   - 支払回数：未指定・`""` → 「支払回数を選んでください」。`"4"`・`"0"`・`"abc"`・`"12.0"` → 「支払回数は3・5・6・10・12・15・18・20・24・30・36回から選んでください」。11種類それぞれ → エラーなし
   - 実質年率：未指定・`""` → 「実質年率を入力してください」。`"12.25"`・`"15.00"`（人が確認済み）・`"-1"`・`"-0.1"`・`".5"`・`"abc"` → 「実質年率は半角数字で、小数第1位までで入力してください（例：12.5）」。`"15.1"`・`"16"` → 「実質年率は0.0%以上15.0%以下で入力してください」。`"0.0"`・`"0"`・`"15.0"` → エラーなし
   - 3項目とも誤り → 3件。並びは `amount` → `paymentCount` → `annualRate`
+  - 先頭の0：利用金額 `"01000"` → 1000、支払回数 `"012"` → 12 として受け付ける。支払回数の `"00"`・`"-12"` は一覧のエラー（T058）
+  - 長さの上限（前後の空白を取り除いたあと20文字）：20文字ちょうど（先頭の0で埋めた値）→ エラーなし。形式に合っていて21文字以上（`"1"` + 0を20個など）→ 利用金額・実質年率は範囲のエラー、支払回数は一覧のエラー。形式に合わず21文字以上 → 形式のエラー（T059・T062）
 - [x] T044 [P] [US3] API のテストを `{test}/installment/web/InstallmentSimulationControllerTest.java` に足す：(1) `{"amount":"","paymentCount":"4","annualRate":"12.25"}` → 400・`Content-Type: application/problem+json`・`type` `about:blank`・`title` 「入力に誤りがあります」・`status` 400・`errors` が3件。結果の項目（`totalFee` など）を含まない（SC-004）。(2) 本文が JSON として読めないとき → 400・`title` 「リクエストの形式が正しくありません」・`errors` を含まない。(3) 項目が JSON の数値のとき（`{"amount":100000,"paymentCount":12,"annualRate":"15.0"}`）→ 文字列のときと同じ 200 の結果（contracts のリクエスト）
 - [x] T045 [P] [US3] API の呼び出しのテストを `frontend/src/features/installment/api.test.ts` に足す：400 で `errors` があるときは項目ごとのエラーを返す。`errors` がない 400、そのほかの失敗（500・通信の失敗）のときは「予期しないエラー」を返す
 - [x] T046 [P] [US3] 入力フォームのテストを `frontend/src/features/installment/InstallmentForm.test.tsx` に足す：エラーを渡すと、その項目の入力欄のすぐ下にメッセージを表示する。メッセージは赤字（色のスタイルまたは CSS のクラスで確かめる）で、入力欄と `aria-describedby` で結び付ける。ポップアップ（`alert`・ダイアログ）は使わない（plan.md「画面」）
@@ -152,7 +154,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 
 ### Implementation for User Story 3
 
-- [x] T048 [US3] `{main}/installment/web/InstallmentInputValidator.java` に入力チェックを足す。形式は利用金額・支払回数が `^[0-9]+$`、実質年率が `^[0-9]+(\.[0-9])?$`。範囲は「利用金額：1,000以上10,000,000以下」「支払回数：3・5・6・10・12・15・18・20・24・30・36 のいずれか」「実質年率：0.0以上15.0以下。小数第2位以下があればエラー（丸めない）」（data-model.md 1）。メッセージは contracts の一覧の文言どおり。エラーがあれば、項目ごとのエラーの一覧を持つ例外 `{main}/installment/web/InstallmentInputException.java` を投げる。T043 が green になる
+- [x] T048 [US3] `{main}/installment/web/InstallmentInputValidator.java` に入力チェックを足す。形式は利用金額・支払回数が `^[0-9]+$`、実質年率が `^[0-9]+(\.[0-9])?$`。範囲は「利用金額：1,000以上10,000,000以下」「支払回数：3・5・6・10・12・15・18・20・24・30・36 のいずれか」「実質年率：0.0以上15.0以下。小数第2位以下があればエラー（丸めない）」（data-model.md 1）。先頭の0は受け付け、数として照合する（T058）。長さの上限は3項目とも20文字で、数として解釈する前に確かめる。形式に合っていて上限を超えたものは範囲の誤りにし、BigDecimal に変えない（T059・T062）。メッセージは contracts の一覧の文言どおり。エラーがあれば、項目ごとのエラーの一覧を持つ例外 `{main}/installment/web/InstallmentInputException.java` を投げる。T043 が green になる
 - [x] T049 [US3] `{main}/common/web/ApiExceptionHandler.java`（`@RestControllerAdvice`）を作る：入力エラーの例外 → `ProblemDetail`（`title` 「入力に誤りがあります」、`errors` の配列）、JSON が読めない（`HttpMessageNotReadableException`）→ `ProblemDetail`（`title` 「リクエストの形式が正しくありません」）。どちらも 400。JSON の数値を文字列の項目に受け付けるよう、必要なら Jackson の設定を足す。T044 が green になる
 - [x] T050 [US3] `frontend/src/features/installment/api.ts` に 400・予期しないエラーの扱いを足す。T045 が green になる
 - [x] T051 [US3] `frontend/src/features/installment/InstallmentForm.tsx` に、項目ごとのエラーの表示を足す（入力欄のすぐ下、赤字、`aria-describedby`）。T046 が green になる
@@ -171,10 +173,23 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T054 [P] フロントで金額を計算していないことを確かめる：`frontend/src/` で、API の結果の金額に `+`・`-`・`*`・`/` をしていない（表示だけ。research.md R6）
 - [x] T055 `./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II。T013 の閾値）
   - 2026-11-20：BUILD SUCCESS。バックエンド 540件・フロント 36件がすべて通過。行・分岐カバレッジは両方とも100%。Spotless・Prettier も通過
+  - 2026-11-20（T058〜T064 のあと）：BUILD SUCCESS。バックエンド 548件・フロント 43件がすべて通過。行・分岐カバレッジは、バックエンドが 114/114・40/40、フロントが 51/51・24/24 で、両方とも100%。Spotless・Prettier も通過
 - [ ] T056 [quickstart.md](quickstart.md) の 1〜4 を上から順に行い、すべて期待どおりであることを確かめる（画面の確認 #1〜#8 を含む）。SC-001・SC-005 は自動のテストにせず、次のとおり人が確かめる：Codespaces で `java -jar` で起動し、ブラウザの開発者ツールの Network で `POST /api/installment-simulations` の時間が1秒未満であることを見る。画面を開いてから結果が出るまでを、人がストップウォッチで測り、30秒以内であることを確かめる
   - 2026-11-20：Claude が 1〜3 を行った。`./mvnw verify` と `./mvnw package` は通過し、jar は1つで、`static/index.html` も入っていた。`java -jar` で起動し、curl で 200（US1-1・US2-5 の値）・年率0%・400（errors 3件、problem+json、type about:blank）・壊れた本文の 400 を確かめた。API の応答は 0.15秒。4（画面の #1〜#8）と、SC-001・SC-005 のブラウザでの計測は、人が行う
 - [ ] T057 Superpowers の requesting-code-review と verification-before-completion を通してから PR を出す（[ADR 0007](../../docs/adr/0007-ツールの使い分け.md)）。AI の出力を人が確かめた結果は、人が `docs/ai-review-log.md` に記録する（constitution「開発ワークフローと人とAIの分担」）
   - 2026-11-20：スキル②（pre-pr-check。requesting-code-review と verification-before-completion を含む）で確かめた。Critical・Important の指摘はなし。PR の作成と、`docs/ai-review-log.md` への記録は人が行う
+
+### スキル②のレビューから足した修正（2026-11-20）
+
+T057 のスキル②のレビュー（1回目・2回目）の Minor のうち、人が直すと決めたもの。どれも先にテストで red を確かめてから直した。
+
+- [x] T058 [US3] 支払回数も、利用金額と同じく先頭の0（`"012"`）を受け付け、数として照合する。`"0"`・`"00"`・`"-12"` は一覧のエラー（1回目の Minor 3。`d3db598`）
+- [x] T059 [US3] 3項目とも、入力の長さの上限を20文字（前後の空白を取り除いたあと）にし、長すぎる文字列を BigDecimal で解釈しない（1回目の Minor 6。`b1b6d67`。超えたときのメッセージは T062 で直した）
+- [x] T060 [US1] 実行中は「計算する」を押せなくし、古い応答で新しい結果が上書きされないようにする（1回目の Minor 1。`c7409a7`）
+- [x] T061 [US3] 入力エラーと予期しないエラーのメッセージに `role="alert"` を付け、スクリーンリーダーに伝える（1回目の Minor 2。`b852d1b`）
+- [x] T062 [US3] 半角数字だけで書かれていて20文字を超える入力（21桁以上など）は、形式ではなく範囲の誤りにする。支払回数は今までどおり一覧のエラー。BigDecimal で解釈しない点は変えない（2回目の Minor 1。`bc2d895`）
+- [x] T063 [US1] `InstallmentPage.tsx` の `setSubmitting(false)` を try/finally に入れる。`simulate` が例外を投げても押せないままにせず、予期しないエラーとして表示する（2回目の Minor 2。`4ea74b7`）
+- [x] T064 [US1] 実行が終わったら、フォーカスを「計算する」のボタンに戻す（キーボードの利用者のため。2回目の Minor 3。`ae617ea`）
 
 ### あと回しにすること（2026-11-20、スキル②のレビューの Minor から）
 
