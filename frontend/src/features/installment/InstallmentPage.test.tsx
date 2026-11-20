@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { afterEach, expect, test, vi } from 'vitest'
 import { simulate } from './api'
@@ -195,6 +195,21 @@ test('エラーの応答のあとも「計算する」を押せるようにな�
     await screen.findByText('計算できませんでした。もう一度お試しください'),
   ).toBeInTheDocument()
   expect(screen.getByRole('button', { name: '計算する' })).toBeEnabled()
+})
+
+test('API の呼び出しが例外を投げても、予期しないエラーを表示し、「計算する」を押せるようになる', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate).mockRejectedValueOnce(new Error('想定外'))
+  render(<InstallmentPage />)
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+
+  expect(
+    await screen.findByText('計算できませんでした。もう一度お試しください'),
+  ).toBeInTheDocument()
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: '計算する' })).toBeEnabled(),
+  )
 })
 
 // spec US3 の3（利用金額が未入力・4回・12.25%）

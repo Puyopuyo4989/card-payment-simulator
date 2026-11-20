@@ -15,8 +15,14 @@ export default function InstallmentPage() {
     setOutcome(null)
     // 応答が来るまで次の実行をさせず、古い応答で新しい結果が上書きされないようにする
     setSubmitting(true)
-    setOutcome(await simulate(request))
-    setSubmitting(false)
+    try {
+      setOutcome(await simulate(request))
+    } catch {
+      // simulate は例外を投げない作りだが、もし投げても押せないままにせず、予期しないエラーとして伝える
+      setOutcome({ kind: 'unexpectedError' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
