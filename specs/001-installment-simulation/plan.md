@@ -16,7 +16,8 @@
 - バックエンド（Spring Boot）が、入力チェックと計算をすべて行い、結果を JSON で返す。
   金額は `BigDecimal` で扱い、割り算を最後の1回にまとめて誤差なく計算する（[research.md](research.md) R7）。
 - フロントエンド（React）は、入力を API に送り、結果とエラーを表示するだけにする。金額の計算はしない。
-- フロントのビルド結果を Spring Boot の jar に同梱し、1つの jar で配信する。DB は使わない。
+- フロントのビルド結果を Spring Boot の jar に同梱し、1つの jar で配信する。この機能は DB を使わない。
+  ただし、申込管理のために DB の設定が入ったので、アプリの起動には PostgreSQL が要る（[ADR 0011](../../docs/adr/0011-DB.md)、R10）。
 
 ## 技術の前提（Technical Context）
 
@@ -26,7 +27,7 @@
 | 主なフレームワーク | Spring Boot 4.1 系に固定（Spring Web MVC）、React。4.2 は 11/19 リリース予定だが、スプリント中は乗り換えない | [ADR 0001](../../docs/adr/0001-技術スタック.md)、R2 |
 | ビルド | Maven（Maven Wrapper で版を固定）。frontend-maven-plugin でフロントをビルドし、jar に同梱 | [ADR 0002](../../docs/adr/0002-ビルドツール.md)・[0003](../../docs/adr/0003-リポジトリと成果物.md)、R4・R5 |
 | フロントのビルド／テスト | Vite、Vitest ＋ React Testing Library（user-event・jest-dom を含む）＋ jsdom | [ADR 0012](../../docs/adr/0012-フロントのビルドとテスト.md)、R9 |
-| 保存 | なし（DB は使わない。結果も保存しない） | 前提、spec の Assumptions、R10 |
+| 保存 | なし（この機能は DB を使わない。結果も保存しない）。アプリには申込管理のための PostgreSQL・Flyway の設定が入っており、起動に DB が要る | 前提、spec の Assumptions、R10、[ADR 0011](../../docs/adr/0011-DB.md) |
 | テスト | JUnit 5 ＋ AssertJ（計算の単体テスト）、MockMvc（API）、Vitest（画面） | R9 |
 | カバレッジ | 行・分岐とも90%以上。計測ツールと除外対象は Day3 に ADR 0006 で決める（候補：JaCoCo、@vitest/coverage-v8） | constitution 原則II、[ADR 0006](../../docs/adr/0006-カバレッジ基準.md) |
 | 動く場所 | 開発：GitHub Codespaces。本番：EC2 上の docker compose（jar 1つ） | [ADR 0004](../../docs/adr/0004-開発環境.md)・[0009](../../docs/adr/0009-デプロイ構成.md) |
@@ -49,8 +50,8 @@ NEEDS CLARIFICATION は残っていない。ADR で決まっていなかった�
 | IV. カード情報はダミー | カード番号を扱うか | 対象外：カード番号を入力・表示・保存しない（spec の Assumptions） | 対象外 |
 | V. APIでつなぐ・1リポジトリ・1 jar | 境界が API だけか。成果物が1つか | OK：画面と計算は `POST /api/installment-simulations` だけでつながる | OK：フロントの成果物を jar に同梱する（R5）。quickstart で jar が1つであることを確かめる |
 | VI. PRを通す | | OK：この機能も PR で main に入れる | OK |
-| VII. 秘密情報 | 秘密情報が要るか | OK：要らない（DB も外部サービスも使わない） | OK |
-| VIII. シンプルさ | 範囲外のものを作らないか | OK：保存・比較表・繰上げ返済は作らない | OK：DB のライブラリ、MSW、画面の遷移（ルーター）、フロントでの二重の入力チェックは入れない（R8〜R10） |
+| VII. 秘密情報 | 秘密情報が要るか | OK：要らない（DB も外部サービスも使わない） | OK：この機能は要らない。DB の接続情報は、申込管理のために環境変数で渡す（ADR 0011） |
+| VIII. シンプルさ | 範囲外のものを作らないか | OK：保存・比較表・繰上げ返済は作らない | OK：MSW、画面の遷移（ルーター）、フロントでの二重の入力チェックは入れない（R8・R9）。DB のライブラリは、この機能のためには入れない。申込管理のために ADR 0011 で入った（R10） |
 | IX. 日本語 | | OK：文書はすべて日本語 | OK |
 
 違反はない。「Complexity Tracking」は空。
@@ -158,6 +159,7 @@ frontend/
 
 - 1画面。入力フォーム、結果の要約、返済表を縦に並べる。
 - 入力エラーは、各入力欄のすぐ下に、その項目のエラーメッセージ（API の `errors[].message`）を赤字で表示する。ポップアップは使わない。
+  メッセージには `role="alert"` を付け、スクリーンリーダーに伝える。実行中は「計算する」を押せなくする。
 - 実行するたびに前回の結果とエラーを消し、新しい結果かエラーのどちらかだけを表示する（spec のエッジケース）。
 - 初回と2回目以降の支払額が異なるときだけ、分けて表示する（FR-012）。
 - 金額は `Intl.NumberFormat('ja-JP')` で3桁区切りにし、「円」を付ける（FR-014）。

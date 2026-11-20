@@ -23,8 +23,9 @@ Content-Type: application/json
 
 3項目とも、画面に入力された値を**変換しないで**文字列のまま送る。値の解釈とチェックはサーバーが行う
 （[data-model.md](../data-model.md)「入力（文字列）の解釈のルール」）。
-ただし利用金額は、画面が送る前にカンマを取り除く（spec の FR-015）。そのため、カンマ付きの利用金額の形式の誤りは
-画面からは起きない。API を直接呼ぶ場合のために、このルール（カンマ付きは形式の誤り）は残す（FR-017）。
+ただし利用金額は、FR-015（Should）を実装したあとは、画面が送る前にカンマを取り除く。そのあとは、カンマ付きの
+利用金額の形式の誤りは画面からは起きない。API を直接呼ぶ場合のために、このルール（カンマ付きは形式の誤り）は残す（FR-017）。
+FR-015 を実装するまでは、画面に入れたカンマもそのまま送られ、形式の誤りになる。
 
 項目に JSON の数値が来たとき（例：`"amount": 100000`）も、文字列として受け付け、同じルールで確かめる。
 
@@ -88,6 +89,7 @@ RFC 9457（Problem Details）の形。誤っている項目は、すべて `erro
 | `type` | string | `about:blank` |
 | `title` | string | `入力に誤りがあります` |
 | `status` | integer | `400` |
+| `instance` | string | 呼ばれたパス（`/api/installment-simulations`）。Spring が付ける |
 | `errors` | array | 項目ごとのエラー |
 | `errors[].field` | string | `amount`・`paymentCount`・`annualRate` のいずれか |
 | `errors[].message` | string | 画面にそのまま表示する、直し方が分かるメッセージ |
@@ -99,6 +101,7 @@ RFC 9457（Problem Details）の形。誤っている項目は、すべて `erro
   "type": "about:blank",
   "title": "入力に誤りがあります",
   "status": 400,
+  "instance": "/api/installment-simulations",
   "errors": [
     { "field": "amount", "message": "利用金額を入力してください" },
     { "field": "annualRate", "message": "実質年率は半角数字で、小数第1位までで入力してください（例：12.5）" }
@@ -128,7 +131,8 @@ RFC 9457（Problem Details）の形。誤っている項目は、すべて `erro
 {
   "type": "about:blank",
   "title": "リクエストの形式が正しくありません",
-  "status": 400
+  "status": 400,
+  "instance": "/api/installment-simulations"
 }
 ```
 

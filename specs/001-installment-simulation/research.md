@@ -234,4 +234,8 @@ Codespaces に入っているツールを確かめて書いた。
 - **気をつけること**: あとで申込管理のために DB のライブラリ（JPA・Flyway・PostgreSQL のドライバー）を入れると、
   Spring Boot は起動時に DB への接続を求める。分割払いのテスト（特に `@WebMvcTest` と計算の単体テスト）は
   DB なしで動く形にしておき、申込管理を作るときに DB の設定を足す。
-  分割払いの段階では、DB のライブラリを入れない（原則VIII）。
+- **更新（2026-11-20）**: デプロイの作業（Day4）で、[ADR 0011](../../docs/adr/0011-DB.md) のとおり、
+  PostgreSQL のドライバー・Spring JDBC・Flyway と DB の接続の設定が先に入った。この機能は今も DB を使わず、保存もしない。
+  - 起動（`java -jar`・`spring-boot:run`）には PostgreSQL が要る。開発では `docker compose up -d db` で起動する（quickstart.md）。
+  - 計算の単体テストと `@WebMvcTest` は、今も DB なしで動く。アプリ全体を起動するテスト（`@SpringBootTest`）は、
+    Testcontainers で PostgreSQL を用意する。
