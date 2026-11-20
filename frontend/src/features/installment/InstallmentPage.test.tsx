@@ -162,6 +162,41 @@ test('再実行すると、前回の返済表を消して、新しい返済表�
   expect(screen.queryByText('92,216円')).not.toBeInTheDocument()
 })
 
+test('実行中は「計算する」を押せず、古い応答で結果が上書きされない', async () => {
+  const user = userEvent.setup()
+  let respond!: (outcome: SimulationOutcome) => void
+  vi.mocked(simulate).mockReturnValueOnce(
+    new Promise((resolve) => {
+      respond = resolve
+    }),
+  )
+  render(<InstallmentPage />)
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+  const button = screen.getByRole('button', { name: '計算する' })
+  expect(button).toBeDisabled()
+  // 押せないので、2回目の API は呼ばれない
+  await user.click(button)
+  expect(simulate).toHaveBeenCalledTimes(1)
+
+  respond(success(twelveTimes))
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+  expect(button).toBeEnabled()
+})
+
+test('エラーの応答のあとも「計算する」を押せるようになる', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate).mockResolvedValueOnce({ kind: 'unexpectedError' })
+  render(<InstallmentPage />)
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+
+  expect(
+    await screen.findByText('計算できませんでした。もう一度お試しください'),
+  ).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '計算する' })).toBeEnabled()
+})
+
 // spec US3 の3（利用金額が未入力・4回・12.25%）
 const inputError: SimulationOutcome = {
   kind: 'inputError',

@@ -20,13 +20,19 @@ type Props = {
   onSubmit: (request: InstallmentSimulationRequest) => void
   /** サーバーが返した項目ごとの入力エラー */
   errors?: FieldError[]
+  /** 実行中。古い応答で結果が上書きされないよう、応答が来るまで「計算する」を押せなくする */
+  submitting?: boolean
 }
 
 /**
  * 入力フォーム。入力のチェックはサーバーが行うので、入力されたままの文字列を渡す（research.md R8）。
  * エラーは入力欄のすぐ下に赤字で出し、aria-describedby で入力欄と結び付ける（ポップアップは使わない）
  */
-export default function InstallmentForm({ onSubmit, errors = [] }: Props) {
+export default function InstallmentForm({
+  onSubmit,
+  errors = [],
+  submitting = false,
+}: Props) {
   const [amount, setAmount] = useState('')
   const [paymentCount, setPaymentCount] = useState('')
   const [annualRate, setAnnualRate] = useState('')
@@ -101,7 +107,9 @@ export default function InstallmentForm({ onSubmit, errors = [] }: Props) {
         />
         {errorMessage('annualRate')}
       </div>
-      <button type="submit">計算する</button>
+      <button type="submit" disabled={submitting}>
+        計算する
+      </button>
     </form>
   )
 }

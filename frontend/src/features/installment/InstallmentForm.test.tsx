@@ -135,6 +135,12 @@ test('エラーがない項目には、メッセージも aria-describedby も�
   expect(screen.queryByText(errors[2].message)).not.toBeInTheDocument()
 })
 
+test('実行中（submitting）は「計算する」を押せない', () => {
+  render(<InstallmentForm onSubmit={vi.fn()} submitting />)
+
+  expect(screen.getByRole('button', { name: '計算する' })).toBeDisabled()
+})
+
 test('入力のチェックはサーバーが行うので、空のままでも送信の処理を呼ぶ', async () => {
   const user = userEvent.setup()
   const onSubmit = vi.fn()
