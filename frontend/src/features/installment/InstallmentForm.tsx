@@ -40,9 +40,14 @@ export default function InstallmentForm({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const wasSubmitting = useRef(false)
 
-  // 押せなくなったボタンからはフォーカスが外れるので、実行が終わったらボタンに戻す（キーボードの利用者のため）
+  // 押せなくなったボタンからはフォーカスが外れるので、実行が終わったらボタンに戻す（キーボードの利用者のため）。
+  // 入力欄で Enter を押したときなど、フォーカスがどこかにあるときは動かさない
   useEffect(() => {
-    if (wasSubmitting.current && !submitting) {
+    if (
+      wasSubmitting.current &&
+      !submitting &&
+      document.activeElement === document.body
+    ) {
       buttonRef.current?.focus()
     }
     wasSubmitting.current = submitting

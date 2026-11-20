@@ -205,6 +205,26 @@ test('実行が終わったら、フォーカスを「計算する」に戻す',
   expect(button).toHaveFocus()
 })
 
+test('入力欄で Enter を押して実行したら、フォーカスは入力欄のまま', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate).mockResolvedValueOnce(success(twelveTimes))
+  render(<InstallmentPage />)
+  await user.type(
+    screen.getByRole('textbox', { name: '利用金額（円）' }),
+    '100000',
+  )
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: '支払回数' }),
+    '12',
+  )
+  const annualRateInput = screen.getByRole('textbox', { name: '実質年率（%）' })
+
+  await user.type(annualRateInput, '15.0{Enter}')
+
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+  expect(annualRateInput).toHaveFocus()
+})
+
 test('エラーの応答のあとも「計算する」を押せるようになる', async () => {
   const user = userEvent.setup()
   vi.mocked(simulate).mockResolvedValueOnce({ kind: 'unexpectedError' })
