@@ -28,3 +28,9 @@ commit-msg:
 
     - name: Conventional Commits の形式を確かめる
       run: bash .lefthook/check-commit-msg.sh {1}
+
+pre-push:
+  jobs:
+    # テスト・カバレッジ（90%）・フォーマットをまとめて確かめる。1〜2 分かかる
+    - name: ./mvnw verify でテスト・カバレッジ・フォーマットを確かめる
+      run: ./mvnw --batch-mode verify
