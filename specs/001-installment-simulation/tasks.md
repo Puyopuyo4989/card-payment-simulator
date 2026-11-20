@@ -140,7 +140,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 
 ### Tests for User Story 3（先に書き、red を確かめる）
 
-- [ ] T043 [P] [US3] 入力チェックのテストを `{test}/installment/web/InstallmentInputValidatorTest.java` に足す。項目ごとに「必須 → 形式 → 範囲」の順で、最初に当てはまった1つのエラーを返し、誤っている項目はすべて返す（data-model.md 1）。境界値と例：
+- [x] T043 [P] [US3] 入力チェックのテストを `{test}/installment/web/InstallmentInputValidatorTest.java` に足す。項目ごとに「必須 → 形式 → 範囲」の順で、最初に当てはまった1つのエラーを返し、誤っている項目はすべて返す（data-model.md 1）。境界値と例：
   - 利用金額：未指定（null）・`""`・`"  "` → 「利用金額を入力してください」。`"1000.5"`・`"-1000"`・`"100,000"`（カンマ付き。人が確認済み）・`"１０００"`（全角）・`"abc"` → 「利用金額は半角数字（整数）で入力してください」。`"999"`・`"10000001"` → 「利用金額は1,000円以上10,000,000円以下で入力してください」。`"1000"`・`"10000000"` → エラーなし
   - 支払回数：未指定・`""` → 「支払回数を選んでください」。`"4"`・`"0"`・`"abc"`・`"12.0"` → 「支払回数は3・5・6・10・12・15・18・20・24・30・36回から選んでください」。11種類それぞれ → エラーなし
   - 実質年率：未指定・`""` → 「実質年率を入力してください」。`"12.25"`・`"15.00"`（人が確認済み）・`"-1"`・`"-0.1"`・`".5"`・`"abc"` → 「実質年率は半角数字で、小数第1位までで入力してください（例：12.5）」。`"15.1"`・`"16"` → 「実質年率は0.0%以上15.0%以下で入力してください」。`"0.0"`・`"0"`・`"15.0"` → エラーなし
@@ -152,7 +152,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 
 ### Implementation for User Story 3
 
-- [ ] T048 [US3] `{main}/installment/web/InstallmentInputValidator.java` に入力チェックを足す。形式は利用金額・支払回数が `^[0-9]+$`、実質年率が `^[0-9]+(\.[0-9])?$`。範囲は「利用金額：1,000以上10,000,000以下」「支払回数：3・5・6・10・12・15・18・20・24・30・36 のいずれか」「実質年率：0.0以上15.0以下。小数第2位以下があればエラー（丸めない）」（data-model.md 1）。メッセージは contracts の一覧の文言どおり。エラーがあれば、項目ごとのエラーの一覧を持つ例外 `{main}/installment/web/InstallmentInputException.java` を投げる。T043 が green になる
+- [x] T048 [US3] `{main}/installment/web/InstallmentInputValidator.java` に入力チェックを足す。形式は利用金額・支払回数が `^[0-9]+$`、実質年率が `^[0-9]+(\.[0-9])?$`。範囲は「利用金額：1,000以上10,000,000以下」「支払回数：3・5・6・10・12・15・18・20・24・30・36 のいずれか」「実質年率：0.0以上15.0以下。小数第2位以下があればエラー（丸めない）」（data-model.md 1）。メッセージは contracts の一覧の文言どおり。エラーがあれば、項目ごとのエラーの一覧を持つ例外 `{main}/installment/web/InstallmentInputException.java` を投げる。T043 が green になる
 - [ ] T049 [US3] `{main}/common/web/ApiExceptionHandler.java`（`@RestControllerAdvice`）を作る：入力エラーの例外 → `ProblemDetail`（`title` 「入力に誤りがあります」、`errors` の配列）、JSON が読めない（`HttpMessageNotReadableException`）→ `ProblemDetail`（`title` 「リクエストの形式が正しくありません」）。どちらも 400。JSON の数値を文字列の項目に受け付けるよう、必要なら Jackson の設定を足す。T044 が green になる
 - [ ] T050 [US3] `frontend/src/features/installment/api.ts` に 400・予期しないエラーの扱いを足す。T045 が green になる
 - [ ] T051 [US3] `frontend/src/features/installment/InstallmentForm.tsx` に、項目ごとのエラーの表示を足す（入力欄のすぐ下、赤字、`aria-describedby`）。T046 が green になる
