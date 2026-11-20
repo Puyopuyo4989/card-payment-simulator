@@ -146,6 +146,39 @@ class InstallmentInputValidatorTest {
     }
 
     @Test
+    void 長さが上限の20文字ちょうどなら受け付ける() {
+        var condition =
+                validator.validate(
+                        new InstallmentSimulationRequest(
+                                "0".repeat(16) + "1000",
+                                "0".repeat(18) + "12",
+                                "0".repeat(16) + "15.0"));
+
+        assertThat(condition)
+                .isEqualTo(
+                        new InstallmentCondition(
+                                new BigDecimal("1000"), 12, new BigDecimal("15.0")));
+    }
+
+    @Test
+    void 長さが上限の20文字を超えたら形式のエラー() {
+        assertThat(
+                        errorsOf(
+                                "0".repeat(17) + "1000",
+                                "0".repeat(19) + "12",
+                                "0".repeat(17) + "15.0"))
+                .containsExactly(
+                        new FieldError("amount", AMOUNT_FORMAT),
+                        new FieldError("paymentCount", COUNT_INVALID),
+                        new FieldError("annualRate", RATE_FORMAT));
+    }
+
+    @Test
+    void 長さは前後の空白を取り除いてから数える() {
+        assertThat(errorsOf("  " + "0".repeat(16) + "1000  ", "12", "15.0")).isEmpty();
+    }
+
+    @Test
     void 誤っている項目はすべて決まった順で返す() {
         assertThat(errorsOf("", "4", "12.25"))
                 .containsExactly(
