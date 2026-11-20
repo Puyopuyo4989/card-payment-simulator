@@ -18,7 +18,10 @@ public class InstallmentInputValidator {
     private static final Pattern INTEGER = Pattern.compile("[0-9]+");
     private static final Pattern RATE = Pattern.compile("[0-9]+(\\.[0-9])?");
 
-    /** 3項目に共通の長さの上限（前後の空白を取り除いたあとの文字数。data-model.md 1）。超えたら形式の誤りにする。 */
+    /**
+     * 3項目に共通の長さの上限（前後の空白を取り除いたあとの文字数。data-model.md 1）。形式に合っていて超えたものは、範囲の誤りにする
+     * （形式に合わないものは、長さにかかわらず形式の誤り）。
+     */
     private static final int MAX_LENGTH = 20;
 
     private static final BigDecimal MIN_AMOUNT = new BigDecimal("1000");
@@ -52,20 +55,20 @@ public class InstallmentInputValidator {
     private static void checkAmount(String amount, List<FieldError> errors) {
         if (amount.isEmpty()) {
             errors.add(new FieldError("amount", "利用金額を入力してください"));
-        } else if (!hasFormat(amount, INTEGER)) {
+        } else if (!INTEGER.matcher(amount).matches()) {
             errors.add(new FieldError("amount", "利用金額は半角数字（整数）で入力してください"));
-        } else {
-            BigDecimal value = new BigDecimal(amount);
-            if (value.compareTo(MIN_AMOUNT) < 0 || value.compareTo(MAX_AMOUNT) > 0) {
-                errors.add(new FieldError("amount", "利用金額は1,000円以上10,000,000円以下で入力してください"));
-            }
+        } else if (isTooLong(amount)
+                || new BigDecimal(amount).compareTo(MIN_AMOUNT) < 0
+                || new BigDecimal(amount).compareTo(MAX_AMOUNT) > 0) {
+            errors.add(new FieldError("amount", "利用金額は1,000円以上10,000,000円以下で入力してください"));
         }
     }
 
     private static void checkPaymentCount(String paymentCount, List<FieldError> errors) {
         if (paymentCount.isEmpty()) {
             errors.add(new FieldError("paymentCount", "支払回数を選んでください"));
-        } else if (!hasFormat(paymentCount, INTEGER)
+        } else if (!INTEGER.matcher(paymentCount).matches()
+                || isTooLong(paymentCount)
                 || !PAYMENT_COUNTS.contains(new BigDecimal(paymentCount))) {
             // 形式の誤りと一覧にない回数は、1つのメッセージにまとめる（data-model.md 1）
             errors.add(
@@ -76,17 +79,17 @@ public class InstallmentInputValidator {
     private static void checkAnnualRate(String annualRate, List<FieldError> errors) {
         if (annualRate.isEmpty()) {
             errors.add(new FieldError("annualRate", "実質年率を入力してください"));
-        } else if (!hasFormat(annualRate, RATE)) {
+        } else if (!RATE.matcher(annualRate).matches()) {
             errors.add(new FieldError("annualRate", "実質年率は半角数字で、小数第1位までで入力してください（例：12.5）"));
-        } else if (new BigDecimal(annualRate).compareTo(MAX_RATE) > 0) {
+        } else if (isTooLong(annualRate) || new BigDecimal(annualRate).compareTo(MAX_RATE) > 0) {
             // 形式のチェックで負の数は除かれているので、下限（0.0）は確かめなくてよい
             errors.add(new FieldError("annualRate", "実質年率は0.0%以上15.0%以下で入力してください"));
         }
     }
 
-    /** 長さが上限以内で、形式に合う。長さを先に確かめ、長すぎる文字列を数として解釈しない。 */
-    private static boolean hasFormat(String value, Pattern format) {
-        return value.length() <= MAX_LENGTH && format.matcher(value).matches();
+    /** 長さが上限を超える。数として解釈する前に確かめ、長すぎる文字列を BigDecimal に変えない。 */
+    private static boolean isTooLong(String value) {
+        return value.length() > MAX_LENGTH;
     }
 
     /** 未指定（null）は空文字として扱い、前後の空白を取り除く。 */

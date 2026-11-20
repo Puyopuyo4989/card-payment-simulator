@@ -161,15 +161,29 @@ class InstallmentInputValidatorTest {
     }
 
     @Test
-    void 長さが上限の20文字を超えたら形式のエラー() {
+    void 形式に合っていて長さが上限の20文字を超えたら範囲のエラー() {
         assertThat(
                         errorsOf(
                                 "0".repeat(17) + "1000",
                                 "0".repeat(19) + "12",
                                 "0".repeat(17) + "15.0"))
                 .containsExactly(
-                        new FieldError("amount", AMOUNT_FORMAT),
+                        new FieldError("amount", AMOUNT_RANGE),
                         new FieldError("paymentCount", COUNT_INVALID),
+                        new FieldError("annualRate", RATE_RANGE));
+    }
+
+    @Test
+    void 利用金額が21桁の数字なら範囲のエラー() {
+        assertThat(errorsOf("1" + "0".repeat(20), "12", "15.0"))
+                .containsExactly(new FieldError("amount", AMOUNT_RANGE));
+    }
+
+    @Test
+    void 形式に合わず長さが上限の20文字を超えたら形式のエラー() {
+        assertThat(errorsOf("1".repeat(20) + "a", "12", "1".repeat(20) + ".25"))
+                .containsExactly(
+                        new FieldError("amount", AMOUNT_FORMAT),
                         new FieldError("annualRate", RATE_FORMAT));
     }
 
