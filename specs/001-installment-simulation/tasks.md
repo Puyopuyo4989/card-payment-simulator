@@ -147,7 +147,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
   - 3項目とも誤り → 3件。並びは `amount` → `paymentCount` → `annualRate`
 - [x] T044 [P] [US3] API のテストを `{test}/installment/web/InstallmentSimulationControllerTest.java` に足す：(1) `{"amount":"","paymentCount":"4","annualRate":"12.25"}` → 400・`Content-Type: application/problem+json`・`type` `about:blank`・`title` 「入力に誤りがあります」・`status` 400・`errors` が3件。結果の項目（`totalFee` など）を含まない（SC-004）。(2) 本文が JSON として読めないとき → 400・`title` 「リクエストの形式が正しくありません」・`errors` を含まない。(3) 項目が JSON の数値のとき（`{"amount":100000,"paymentCount":12,"annualRate":"15.0"}`）→ 文字列のときと同じ 200 の結果（contracts のリクエスト）
 - [x] T045 [P] [US3] API の呼び出しのテストを `frontend/src/features/installment/api.test.ts` に足す：400 で `errors` があるときは項目ごとのエラーを返す。`errors` がない 400、そのほかの失敗（500・通信の失敗）のときは「予期しないエラー」を返す
-- [ ] T046 [P] [US3] 入力フォームのテストを `frontend/src/features/installment/InstallmentForm.test.tsx` に足す：エラーを渡すと、その項目の入力欄のすぐ下にメッセージを表示する。メッセージは赤字（色のスタイルまたは CSS のクラスで確かめる）で、入力欄と `aria-describedby` で結び付ける。ポップアップ（`alert`・ダイアログ）は使わない（plan.md「画面」）
+- [x] T046 [P] [US3] 入力フォームのテストを `frontend/src/features/installment/InstallmentForm.test.tsx` に足す：エラーを渡すと、その項目の入力欄のすぐ下にメッセージを表示する。メッセージは赤字（色のスタイルまたは CSS のクラスで確かめる）で、入力欄と `aria-describedby` で結び付ける。ポップアップ（`alert`・ダイアログ）は使わない（plan.md「画面」）
 - [ ] T047 [US3] 画面全体のテストを `frontend/src/features/installment/InstallmentPage.test.tsx` に足す：エラーのとき結果（要約・返済表）は表示されない。正しい結果のあとにエラーの入力で再実行すると、前回の結果が消えてエラーだけが表示される。エラーのあとに正しい入力で再実行すると、エラーが消える。予期しないエラーのときは「計算できませんでした。もう一度お試しください」を表示する（spec US3、エッジケース、contracts）
 
 ### Implementation for User Story 3
@@ -155,7 +155,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T048 [US3] `{main}/installment/web/InstallmentInputValidator.java` に入力チェックを足す。形式は利用金額・支払回数が `^[0-9]+$`、実質年率が `^[0-9]+(\.[0-9])?$`。範囲は「利用金額：1,000以上10,000,000以下」「支払回数：3・5・6・10・12・15・18・20・24・30・36 のいずれか」「実質年率：0.0以上15.0以下。小数第2位以下があればエラー（丸めない）」（data-model.md 1）。メッセージは contracts の一覧の文言どおり。エラーがあれば、項目ごとのエラーの一覧を持つ例外 `{main}/installment/web/InstallmentInputException.java` を投げる。T043 が green になる
 - [x] T049 [US3] `{main}/common/web/ApiExceptionHandler.java`（`@RestControllerAdvice`）を作る：入力エラーの例外 → `ProblemDetail`（`title` 「入力に誤りがあります」、`errors` の配列）、JSON が読めない（`HttpMessageNotReadableException`）→ `ProblemDetail`（`title` 「リクエストの形式が正しくありません」）。どちらも 400。JSON の数値を文字列の項目に受け付けるよう、必要なら Jackson の設定を足す。T044 が green になる
 - [x] T050 [US3] `frontend/src/features/installment/api.ts` に 400・予期しないエラーの扱いを足す。T045 が green になる
-- [ ] T051 [US3] `frontend/src/features/installment/InstallmentForm.tsx` に、項目ごとのエラーの表示を足す（入力欄のすぐ下、赤字、`aria-describedby`）。T046 が green になる
+- [x] T051 [US3] `frontend/src/features/installment/InstallmentForm.tsx` に、項目ごとのエラーの表示を足す（入力欄のすぐ下、赤字、`aria-describedby`）。T046 が green になる
 - [ ] T052 [US3] `frontend/src/features/installment/InstallmentPage.tsx` で、実行するたびに前回の結果とエラーを両方消し、新しい結果かエラーのどちらかだけを表示する。T047 が green になる
 
 **Checkpoint**: 3つのストーリーがすべて動く。API が contracts の 200・400 の形と一致する。
