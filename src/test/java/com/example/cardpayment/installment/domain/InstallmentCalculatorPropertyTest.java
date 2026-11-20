@@ -58,6 +58,7 @@ class InstallmentCalculatorPropertyTest {
                 .isEqualByComparingTo(result.totalFee());
         assertThat(schedule)
                 .allSatisfy(row -> {
+                    assertThat(row.fee()).as("%d回目の手数料", row.number()).isNotNegative();
                     assertThat(row.principal()).as("%d回目の元金", row.number()).isNotNegative();
                     assertThat(row.balanceAfter()).as("%d回目の残高", row.number()).isNotNegative();
                 });
