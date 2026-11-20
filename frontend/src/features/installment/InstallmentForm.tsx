@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { FieldError, InstallmentSimulationRequest } from './types'
 
 /** 支払回数の選択肢（FR-003） */
@@ -20,7 +20,7 @@ type Props = {
   onSubmit: (request: InstallmentSimulationRequest) => void
   /** サーバーが返した項目ごとの入力エラー */
   errors?: FieldError[]
-  /** 実行中。古い応答で結果が上書きされないよう、応答が来るまで「計算する」を押せなくする */
+  /** 実行中。古い応答で結果が上書きされないよう、応答が来るまで「計算する」を押せなくする。終わったらボタンにフォーカスを戻す */
   submitting?: boolean
 }
 
@@ -37,6 +37,16 @@ export default function InstallmentForm({
   const [amount, setAmount] = useState('')
   const [paymentCount, setPaymentCount] = useState('')
   const [annualRate, setAnnualRate] = useState('')
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const wasSubmitting = useRef(false)
+
+  // 押せなくなったボタンからはフォーカスが外れるので、実行が終わったらボタンに戻す（キーボードの利用者のため）
+  useEffect(() => {
+    if (wasSubmitting.current && !submitting) {
+      buttonRef.current?.focus()
+    }
+    wasSubmitting.current = submitting
+  }, [submitting])
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -108,7 +118,7 @@ export default function InstallmentForm({
         />
         {errorMessage('annualRate')}
       </div>
-      <button type="submit" disabled={submitting}>
+      <button ref={buttonRef} type="submit" disabled={submitting}>
         計算する
       </button>
     </form>

@@ -184,6 +184,27 @@ test('実行中は「計算する」を押せず、古い応答で結果が上�
   expect(button).toBeEnabled()
 })
 
+test('実行が終わったら、フォーカスを「計算する」に戻す', async () => {
+  const user = userEvent.setup()
+  let respond!: (outcome: SimulationOutcome) => void
+  vi.mocked(simulate).mockReturnValueOnce(
+    new Promise((resolve) => {
+      respond = resolve
+    }),
+  )
+  render(<InstallmentPage />)
+  await fillAndSubmit(user, '100000', '12', '15.0')
+  const button = screen.getByRole('button', { name: '計算する' })
+  // ブラウザーは押せなくなったボタンからフォーカスを外すが、jsdom は外さないので、ここで外す
+  button.blur()
+  expect(button).not.toHaveFocus()
+
+  respond(success(twelveTimes))
+
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+  expect(button).toHaveFocus()
+})
+
 test('エラーの応答のあとも「計算する」を押せるようになる', async () => {
   const user = userEvent.setup()
   vi.mocked(simulate).mockResolvedValueOnce({ kind: 'unexpectedError' })
