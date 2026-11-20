@@ -303,6 +303,16 @@ test('予期しないエラーのときは、共通のメッセージを表示�
   expect(screen.queryByText('8,309円')).not.toBeInTheDocument()
 })
 
+test('予期しないエラーのメッセージは role="alert" で、スクリーンリーダーに伝える', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate).mockResolvedValueOnce({ kind: 'unexpectedError' })
+  render(<InstallmentPage />)
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(unexpectedMessage)
+})
+
 test('予期しないエラーのあとに再実行すると、共通のメッセージを消す', async () => {
   const user = userEvent.setup()
   vi.mocked(simulate)

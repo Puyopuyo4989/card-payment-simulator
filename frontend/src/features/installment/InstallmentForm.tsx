@@ -26,7 +26,8 @@ type Props = {
 
 /**
  * 入力フォーム。入力のチェックはサーバーが行うので、入力されたままの文字列を渡す（research.md R8）。
- * エラーは入力欄のすぐ下に赤字で出し、aria-describedby で入力欄と結び付ける（ポップアップは使わない）
+ * エラーは入力欄のすぐ下に赤字で出し、aria-describedby で入力欄と結び付ける（ポップアップは使わない）。
+ * role="alert" で、出たことをスクリーンリーダーに伝える
  */
 export default function InstallmentForm({
   onSubmit,
@@ -57,7 +58,7 @@ export default function InstallmentForm({
     const message = messageOf(field)
     return (
       message && (
-        <p id={`${field}-error`} className="field-error">
+        <p id={`${field}-error`} className="field-error" role="alert">
           {message}
         </p>
       )

@@ -113,14 +113,21 @@ test.each([
   },
 )
 
-test('エラーはポップアップ（alert・ダイアログ）で出さない', () => {
+test('エラーはポップアップ（window.alert・ダイアログ）で出さない', () => {
   const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
   render(<InstallmentForm onSubmit={vi.fn()} errors={errors} />)
 
   expect(alert).not.toHaveBeenCalled()
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   alert.mockRestore()
+})
+
+test('エラーのメッセージは role="alert" で、スクリーンリーダーに伝える', () => {
+  render(<InstallmentForm onSubmit={vi.fn()} errors={errors} />)
+
+  expect(
+    screen.getAllByRole('alert').map((alert) => alert.textContent),
+  ).toEqual(errors.map((error) => error.message))
 })
 
 test('エラーがない項目には、メッセージも aria-describedby も付けない', () => {

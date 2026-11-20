@@ -27,7 +27,7 @@ export default function InstallmentPage() {
         errors={outcome?.kind === 'inputError' ? outcome.errors : []}
       />
       {outcome?.kind === 'unexpectedError' && (
-        <p className="field-error">
+        <p className="field-error" role="alert">
           計算できませんでした。もう一度お試しください
         </p>
       )}
