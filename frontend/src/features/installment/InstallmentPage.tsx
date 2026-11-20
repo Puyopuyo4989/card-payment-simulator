@@ -3,31 +3,33 @@ import { simulate } from './api'
 import InstallmentForm from './InstallmentForm'
 import InstallmentSummary from './InstallmentSummary'
 import ScheduleTable from './ScheduleTable'
-import type {
-  InstallmentSimulationRequest,
-  InstallmentSimulationResult,
-} from './types'
+import type { InstallmentSimulationRequest, SimulationOutcome } from './types'
 
-/** 入力 → 結果の表示。エラーの表示は US3 で足す */
+/** 入力 → 結果かエラーの表示。新しい結果かエラーのどちらかだけを表示する */
 export default function InstallmentPage() {
-  const [result, setResult] = useState<InstallmentSimulationResult | null>(null)
+  const [outcome, setOutcome] = useState<SimulationOutcome | null>(null)
 
   async function handleSubmit(request: InstallmentSimulationRequest) {
-    // 前回の結果が新しい結果と混ざって見えないよう、APIを呼ぶ前に消す（spec のエッジケース）
-    setResult(null)
-    const outcome = await simulate(request)
-    if (outcome.kind === 'success') {
-      setResult(outcome.result)
-    }
+    // 前回の結果やエラーが新しいものと混ざって見えないよう、APIを呼ぶ前に消す（spec のエッジケース）
+    setOutcome(null)
+    setOutcome(await simulate(request))
   }
 
   return (
     <>
-      <InstallmentForm onSubmit={handleSubmit} />
-      {result && (
+      <InstallmentForm
+        onSubmit={handleSubmit}
+        errors={outcome?.kind === 'inputError' ? outcome.errors : []}
+      />
+      {outcome?.kind === 'unexpectedError' && (
+        <p className="field-error">
+          計算できませんでした。もう一度お試しください
+        </p>
+      )}
+      {outcome?.kind === 'success' && (
         <>
-          <InstallmentSummary result={result} />
-          <ScheduleTable schedule={result.schedule} />
+          <InstallmentSummary result={outcome.result} />
+          <ScheduleTable schedule={outcome.result.schedule} />
         </>
       )}
     </>

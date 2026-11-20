@@ -161,3 +161,124 @@ test('再実行すると、前回の返済表を消して、新しい返済表�
   expect(await screen.findByText('33,334円')).toBeInTheDocument()
   expect(screen.queryByText('92,216円')).not.toBeInTheDocument()
 })
+
+// spec US3 の3（利用金額が未入力・4回・12.25%）
+const inputError: SimulationOutcome = {
+  kind: 'inputError',
+  errors: [
+    { field: 'amount', message: '利用金額を入力してください' },
+    {
+      field: 'paymentCount',
+      message:
+        '支払回数は3・5・6・10・12・15・18・20・24・30・36回から選んでください',
+    },
+    {
+      field: 'annualRate',
+      message:
+        '実質年率は半角数字で、小数第1位までで入力してください（例：12.5）',
+    },
+  ],
+}
+
+const unexpectedMessage = '計算できませんでした。もう一度お試しください'
+
+test('入力エラーのときは、結果を表示せず、項目ごとのエラーを表示する', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate).mockResolvedValue(inputError)
+  render(<InstallmentPage />)
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+
+  expect(
+    await screen.findByText('利用金額を入力してください'),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByText(
+      '支払回数は3・5・6・10・12・15・18・20・24・30・36回から選んでください',
+    ),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByText(
+      '実質年率は半角数字で、小数第1位までで入力してください（例：12.5）',
+    ),
+  ).toBeInTheDocument()
+  expect(screen.queryByText('手数料の合計')).not.toBeInTheDocument()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+})
+
+test('正しい結果のあとにエラーの入力で再実行すると、前回の結果を消してエラーだけを表示する', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate)
+    .mockResolvedValueOnce(success(twelveTimesWithSchedule))
+    .mockResolvedValueOnce(inputError)
+  render(<InstallmentPage />)
+  await fillAndSubmit(user, '100000', '12', '15.0')
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+
+  await fillAndSubmit(user, '100000', '12', '12.25')
+
+  expect(
+    await screen.findByText('利用金額を入力してください'),
+  ).toBeInTheDocument()
+  expect(screen.queryByText('8,309円')).not.toBeInTheDocument()
+  expect(screen.queryByText('手数料の合計')).not.toBeInTheDocument()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+})
+
+test('エラーのあとに正しい入力で再実行すると、エラーを消して結果だけを表示する', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate).mockResolvedValueOnce(inputError)
+  render(<InstallmentPage />)
+  await fillAndSubmit(user, '100000', '12', '12.25')
+  expect(
+    await screen.findByText('利用金額を入力してください'),
+  ).toBeInTheDocument()
+
+  // 応答の前に、前回のエラーが消えていることを確かめる
+  let respond!: (outcome: SimulationOutcome) => void
+  vi.mocked(simulate).mockReturnValueOnce(
+    new Promise((resolve) => {
+      respond = resolve
+    }),
+  )
+  await fillAndSubmit(user, '100000', '12', '15.0')
+  expect(
+    screen.queryByText('利用金額を入力してください'),
+  ).not.toBeInTheDocument()
+
+  respond(success(twelveTimes))
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+  expect(
+    screen.queryByText('利用金額を入力してください'),
+  ).not.toBeInTheDocument()
+})
+
+test('予期しないエラーのときは、共通のメッセージを表示し、結果を表示しない', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate)
+    .mockResolvedValueOnce(success(twelveTimes))
+    .mockResolvedValueOnce({ kind: 'unexpectedError' })
+  render(<InstallmentPage />)
+  await fillAndSubmit(user, '100000', '12', '15.0')
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+
+  expect(await screen.findByText(unexpectedMessage)).toBeInTheDocument()
+  expect(screen.queryByText('8,309円')).not.toBeInTheDocument()
+})
+
+test('予期しないエラーのあとに再実行すると、共通のメッセージを消す', async () => {
+  const user = userEvent.setup()
+  vi.mocked(simulate)
+    .mockResolvedValueOnce({ kind: 'unexpectedError' })
+    .mockResolvedValueOnce(success(twelveTimes))
+  render(<InstallmentPage />)
+  await fillAndSubmit(user, '100000', '12', '15.0')
+  expect(await screen.findByText(unexpectedMessage)).toBeInTheDocument()
+
+  await fillAndSubmit(user, '100000', '12', '15.0')
+
+  expect(await screen.findByText('8,309円')).toBeInTheDocument()
+  expect(screen.queryByText(unexpectedMessage)).not.toBeInTheDocument()
+})
