@@ -8,7 +8,10 @@
 ## 前提
 
 - GitHub Codespaces（[ADR 0004](../../docs/adr/0004-開発環境.md)）。Java・Node.js の版は [research.md](research.md) R1・R3 のとおり。
-- DB は要らない（[research.md](research.md) R10）。docker compose を起動しなくてよい。
+- この機能は DB を使わない（[research.md](research.md) R10）。ただし、アプリは起動するときに PostgreSQL へ接続する
+  （[ADR 0011](../../docs/adr/0011-DB.md)。申込管理のために、Flyway と DB の設定が入っている）。
+  そのため、2 で `java -jar` を、5 で `spring-boot:run` を動かす前に、`docker compose up -d db` で DB を起動する。
+  1 の `./mvnw verify` は、Testcontainers が DB を用意するので、起動しなくてよい（Docker は要る）。
 
 ## 1. テストとカバレッジ
 
@@ -30,6 +33,7 @@ cd frontend && npm test
 ## 2. 1つの jar を作って起動する
 
 ```bash
+docker compose up -d db
 ./mvnw package
 java -jar target/*.jar
 ```
@@ -87,6 +91,7 @@ curl -s -i -X POST http://localhost:8080/api/installment-simulations \
 フロントの開発サーバーは `/api` を Spring Boot に転送する（[research.md](research.md) R5）。
 
 ```bash
+docker compose up -d db         # 先に DB を起動する
 ./mvnw spring-boot:run          # ターミナル1：http://localhost:8080
 cd frontend && npm run dev      # ターミナル2：Vite の開発サーバー
 ```
