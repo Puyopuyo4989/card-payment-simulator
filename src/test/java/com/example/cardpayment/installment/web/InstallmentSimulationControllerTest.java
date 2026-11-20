@@ -34,6 +34,26 @@ class InstallmentSimulationControllerTest {
     }
 
     @Test
+    void 返済表を1回目から最終回まで返す() {
+        var result =
+                simulate(
+                        """
+                        {"amount":"100000","paymentCount":"12","annualRate":"15.0"}
+                        """);
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        assertThat(result).bodyJson().extractingPath("$.schedule").asArray().hasSize(12);
+        // 項目名と、金額が整数のまま返ることを、本文の文字列で確かめる（contracts の例）
+        assertThat(result)
+                .body()
+                .asString()
+                .contains(
+                        "{\"number\":1,\"payment\":9034,\"principal\":7784,\"fee\":1250,\"balanceAfter\":92216}");
+        assertThat(result).bodyJson().extractingPath("$.schedule[11].number").isEqualTo(12);
+        assertThat(result).bodyJson().extractingPath("$.schedule[11].balanceAfter").isEqualTo(0);
+    }
+
+    @Test
     void 金額は指数表記や小数点を付けず整数のまま返す() {
         var result =
                 simulate(

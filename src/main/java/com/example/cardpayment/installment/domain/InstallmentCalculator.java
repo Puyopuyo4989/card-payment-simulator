@@ -2,6 +2,7 @@ package com.example.cardpayment.installment.domain;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,8 +30,39 @@ public class InstallmentCalculator {
         BigDecimal firstPayment =
                 totalPayment.subtract(subsequentPayment.multiply(n.subtract(BigDecimal.ONE)));
 
+        List<ScheduleRow> schedule =
+                schedule(amount, paymentCount, k, totalFee, firstPayment, subsequentPayment);
         return new InstallmentResult(
-                totalFee, totalPayment, firstPayment, subsequentPayment, List.of());
+                totalFee, totalPayment, firstPayment, subsequentPayment, schedule);
+    }
+
+    /**
+     * 返済表（FR-006）。手数料は、最終回の1つ前までは 切り捨て(前回の残高 × k ÷ D)、最終回は 手数料の合計 − それまでの手数料の合計。 年率0%（k ＝
+     * 0）のときは、どの回の手数料も0円になる（FR-007）。
+     */
+    private static List<ScheduleRow> schedule(
+            BigDecimal amount,
+            int paymentCount,
+            int k,
+            BigDecimal totalFee,
+            BigDecimal firstPayment,
+            BigDecimal subsequentPayment) {
+        List<ScheduleRow> rows = new ArrayList<>(paymentCount);
+        BigDecimal balance = amount;
+        BigDecimal feeSoFar = BigDecimal.ZERO;
+        for (int number = 1; number <= paymentCount; number++) {
+            BigDecimal payment = number == 1 ? firstPayment : subsequentPayment;
+            BigDecimal fee =
+                    number < paymentCount
+                            ? balance.multiply(BigDecimal.valueOf(k))
+                                    .divide(D, 0, RoundingMode.DOWN)
+                            : totalFee.subtract(feeSoFar);
+            BigDecimal principal = payment.subtract(fee);
+            balance = balance.subtract(principal);
+            feeSoFar = feeSoFar.add(fee);
+            rows.add(new ScheduleRow(number, payment, principal, fee, balance));
+        }
+        return List.copyOf(rows);
     }
 
     /**
