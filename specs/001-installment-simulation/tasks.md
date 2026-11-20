@@ -176,6 +176,11 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [ ] T057 Superpowers の requesting-code-review と verification-before-completion を通してから PR を出す（[ADR 0007](../../docs/adr/0007-ツールの使い分け.md)）。AI の出力を人が確かめた結果は、人が `docs/ai-review-log.md` に記録する（constitution「開発ワークフローと人とAIの分担」）
   - 2026-11-20：スキル②（pre-pr-check。requesting-code-review と verification-before-completion を含む）で確かめた。Critical・Important の指摘はなし。PR の作成と、`docs/ai-review-log.md` への記録は人が行う
 
+### あと回しにすること（2026-11-20、スキル②のレビューの Minor から）
+
+- 共通の入力エラーの例外を `{main}/common/` に移すのは、Day6（リボ払い）で行う。今は `{main}/common/web/ApiExceptionHandler.java` が `{main}/installment/web/InstallmentInputException.java` を直接使っている。2つ目の機能で同じ形の入力エラーが要るときに移す
+- `ScheduleRow`（`{main}/installment/domain/ScheduleRow.java`）を API のレスポンス（`InstallmentSimulationResponse`）にそのまま使っているのは、既知の課題。ドメインの項目名を変えると、API の契約も変わる。直すときは、web 層に返済表の行の型を置く
+
 ---
 
 ## Dependencies & Execution Order
