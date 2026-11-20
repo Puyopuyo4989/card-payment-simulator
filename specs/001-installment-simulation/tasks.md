@@ -64,8 +64,8 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 
 **⚠️ CRITICAL**: このフェーズが終わるまで、ユーザーストーリーのタスクを始めない。
 
-- [ ] T014 [P] 金額の表示のテストを先に書く：`frontend/src/shared/formatYen.test.ts`。`100000` → `100,000円`、`0` → `0円`、`9034` → `9,034円`、`12479518` → `12,479,518円`（FR-014）。red を確かめる
-- [ ] T015 `frontend/src/shared/formatYen.ts` を作る：`Intl.NumberFormat('ja-JP')` で3桁区切りにし「円」を付ける。金額の計算はしない。T014 が green になる
+- [x] T014 [P] 金額の表示のテストを先に書く：`frontend/src/shared/formatYen.test.ts`。`100000` → `100,000円`、`0` → `0円`、`9034` → `9,034円`、`12479518` → `12,479,518円`（FR-014）。red を確かめる
+- [x] T015 `frontend/src/shared/formatYen.ts` を作る：`Intl.NumberFormat('ja-JP')` で3桁区切りにし「円」を付ける。金額の計算はしない。T014 が green になる
 
 **Checkpoint**: 表示の部品がそろい、ストーリーの実装を始められる。
 
