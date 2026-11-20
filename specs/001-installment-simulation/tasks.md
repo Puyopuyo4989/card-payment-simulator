@@ -89,7 +89,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T021 [P] [US1] API の呼び出しのテストを書く：`frontend/src/features/installment/api.test.ts`。`fetch` を差し替え、`POST /api/installment-simulations` に JSON の本文（3項目とも文字列のまま）を送ること、200 のときに結果を返すこと
 - [x] T022 [US1] T021 がコンパイルで失敗すること（red）を確かめてから、フロントの API の型を作る：`frontend/src/features/installment/types.ts`。リクエスト `{ amount: string; paymentCount: string; annualRate: string }`、成功のレスポンス（`totalFee`・`totalPayment`・`firstPayment`・`subsequentPayment`・`schedule[]`（`number`・`payment`・`principal`・`fee`・`balanceAfter`）。すべて number）、エラーのレスポンス（`errors: { field: 'amount' | 'paymentCount' | 'annualRate'; message: string }[]`）。項目名は [contracts](contracts/installment-simulation-api.md) と同じにする
 - [x] T023 [P] [US1] 結果の要約のテストを書く：`frontend/src/features/installment/InstallmentSummary.test.tsx`。手数料の合計・支払総額を3桁区切りで表示する。初回と2回目以降が異なるとき（9,034円と9,025円）は分けて表示し、同じとき（100,000円・3回・15.0% の 34,170円）は「毎月の支払額」として1つだけ表示する（FR-012）
-- [ ] T024 [P] [US1] 入力フォームのテストを書く：`frontend/src/features/installment/InstallmentForm.test.tsx`。利用金額・実質年率は文字列の入力欄（`type="text"`）、支払回数は選択肢「選んでください（空）・3・5・6・10・12・15・18・20・24・30・36回」から選ぶ。実行すると、入力されたままの文字列で送信の処理が呼ばれる（research.md R8）
+- [x] T024 [P] [US1] 入力フォームのテストを書く：`frontend/src/features/installment/InstallmentForm.test.tsx`。利用金額・実質年率は文字列の入力欄（`type="text"`）、支払回数は選択肢「選んでください（空）・3・5・6・10・12・15・18・20・24・30・36回」から選ぶ。実行すると、入力されたままの文字列で送信の処理が呼ばれる（research.md R8）
 - [ ] T025 [US1] 画面全体のテストを書く：`frontend/src/features/installment/InstallmentPage.test.tsx`（`vi.mock` で `api.ts` を差し替え）。100,000円・12回・15.0% を入力して実行すると、8,309円・108,309円・9,034円・9,025円が表示される。入力を変えて再実行すると、前回の結果が残らず新しい結果だけが表示される（spec のエッジケース）
 
 ### Implementation for User Story 1
@@ -101,7 +101,7 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T030 [US1] T020 を green にする：金額が `1E+5` などにならないよう、計算の結果の `scale()` を 0 に保つ（`stripTrailingZeros()` を使わない）。それでも指数表記になる場合だけ、Jackson の設定で BigDecimal をそのまま（plain で）書き出す
 - [x] T031 [P] [US1] `frontend/src/features/installment/api.ts` を作る：`simulate(request)` が `POST /api/installment-simulations` を呼び、200 なら結果を返す。T021 が green になる
 - [x] T032 [P] [US1] `frontend/src/features/installment/InstallmentSummary.tsx` を作る（`formatYen` を使う）。T023 が green になる
-- [ ] T033 [P] [US1] `frontend/src/features/installment/InstallmentForm.tsx` を作る。T024 が green になる
+- [x] T033 [P] [US1] `frontend/src/features/installment/InstallmentForm.tsx` を作る。T024 が green になる
 - [ ] T034 [US1] `frontend/src/features/installment/InstallmentPage.tsx` を作り、`frontend/src/App.tsx` から表示する。実行するたびに前回の結果を消してから API を呼ぶ。T025 と T008 が green になる
 
 **Checkpoint**: US1 だけで、利用者は分割払いにするかどうかを判断できる（MVP）。
