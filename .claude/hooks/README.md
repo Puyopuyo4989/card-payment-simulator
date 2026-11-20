@@ -88,7 +88,7 @@ python3 -m unittest discover -s .claude/hooks/tests -v
 
 | 変更したファイル | やること |
 |------------------|----------|
-| `src/**/*.java` | そのファイルだけを Spotless（`spotless:apply`）でフォーマットする。テストは動かさない（Stop の hook で動かす予定） |
+| `src/**/*.java` | そのファイルだけを Spotless（`spotless:apply`）でフォーマットする。テストは動かさない（Stop の hook の `verify_on_stop.py` で動かす） |
 | `frontend/src/**/*.ts`, `*.tsx` | そのファイルを Prettier でフォーマットし、`vitest related` でそのファイルに関係するテストだけを動かす |
 | それ以外 | 何もしない |
 
@@ -150,3 +150,56 @@ Claude Code を **起動し直してから**（hook の設定は起動時に読�
 5. 後片付け：`git restore src frontend/src README.md` で戻す。
 
 `claude --debug` で起動すると、hook に渡った入力と出力を詳しく見られます。
+
+## verify_on_stop.py
+
+`.claude/settings.json` の `Stop` hook から呼ばれ、Claude が応答を終えようとしたときに
+`./mvnw --batch-mode verify`（テスト・カバレッジ 90%・フォーマット）を動かします。
+
+### やること
+
+| 状況 | やること |
+|------|----------|
+| hook 入力の `stop_hook_active` が `true` | 何もしない（この hook で一度止めたあとなので、同じ失敗で止まり続けないようにする） |
+| 前回 verify が成功したときから `src/` と `frontend/src/` の中身が変わっていない | 何もしない（verify は 1〜2 分かかるため） |
+| それ以外 | verify を動かす。成功したら何も出さずに終わる。失敗したら `decision: "block"` と出力の末尾 4000 文字を Claude に返し、Claude は応答を終えずに直す |
+
+- 変わったかどうかは、`src/` と `frontend/src/` の全ファイルのパスと中身のハッシュで比べます。
+  ファイルの追加・削除・名前の変更も変更として扱います。
+- ハッシュは **成功したときだけ** `target/verify-on-stop.last-ok` に残します。失敗したままなら、次に応答を終えるときにもう一度動かします。
+- verify の全部の出力は `target/verify-on-stop.log` に残します（失敗したときは、その場所も Claude に返します）。
+- `./mvnw clean` で `target/` を消すと、次は必ず verify を動かします。
+
+`stop_hook_active` が `true` のときは確かめないので、Claude が直したあとの verify は **次に応答を終えるとき** に動きます
+（ソースが変わっているのでハッシュが合わず、動き直します）。
+
+### タイムアウト
+
+| 制限 | 秒数 | 場所 |
+|------|------|------|
+| hook 全体 | 600 秒 | `.claude/settings.json` の `Stop` の `timeout` |
+| verify | 540 秒 | `verify_on_stop.py` の `COMMAND_TIMEOUT`（環境変数 `VERIFY_ON_STOP_TIMEOUT` で上書きできる。テスト用） |
+
+### テスト
+
+上の「テスト」のコマンドでまとめて動きます。本物の Maven は動かさず、一時ディレクトリの `./mvnw` を
+「呼ばれた引数を記録し、`FAKE_FAIL` が空でなければ失敗する」偽物に差し替えて、
+いつ verify が動くか、失敗が Claude に返るかを確かめます。
+
+### 実際の動きを確かめる手順
+
+Claude Code を **起動し直してから** 行います。`/hooks` で `Stop` に `verify_on_stop.py` が入っていることも確認できます。
+
+1. **変更がないと動かないこと**
+   - ターミナルで一度 `python3 .claude/hooks/verify_on_stop.py <<< '{}'` を動かし、成功させて `target/verify-on-stop.last-ok` を作る
+   - 頼む：「`README.md` を読んで、1 行で要約して」
+   - 確かめる：応答がすぐに終わる（verify が動かない）。
+2. **テストの失敗で止まり、Claude が直しにいくこと**
+   - 頼む：「`frontend/src/App.tsx` の見出しを『分割払い』に変えて。テストはまだ直さないで、そこで応答を終えて」
+   - 確かめる：応答を終えようとしたところで `Stop hook ... ./mvnw --batch-mode verify が失敗しました` と出て、
+     Claude が `target/verify-on-stop.log` や失敗したテストに触れて作業を続ける。
+     2 回目に応答を終えるときは（`stop_hook_active` が `true` なので）止まらずに終わる。
+3. **カバレッジの不足で止まること**
+   - 頼む：「`src/main/java` に、テストのない public メソッドを 30 行ほど持つクラスを 1 つ足して。テストは書かないで」
+   - 確かめる：`jacoco` の `Coverage checks have not been met` で止まる。
+4. 後片付け：`git restore src frontend/src` と、足したファイルの削除。

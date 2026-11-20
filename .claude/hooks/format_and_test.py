@@ -4,7 +4,7 @@
 対象:
   - src/**/*.java
       そのファイルだけを Spotless（spotless:apply）でフォーマットする。
-      テストは動かさない（Stop の hook で動かす予定）。
+      テストは動かさない（Stop の hook の verify_on_stop.py で動かす）。
   - frontend/src/**/*.ts, frontend/src/**/*.tsx
       そのファイルを Prettier でフォーマットし、
       vitest related でそのファイルに関係するテストだけを動かす。
