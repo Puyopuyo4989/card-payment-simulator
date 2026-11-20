@@ -90,6 +90,14 @@ class InstallmentInputValidatorTest {
         assertThat(errorsOf(amount, "12", "15.0")).isEmpty();
     }
 
+    @Test
+    void 支払回数の先頭の0を受け付ける() {
+        var condition =
+                validator.validate(new InstallmentSimulationRequest("100000", "012", "15.0"));
+
+        assertThat(condition.paymentCount()).isEqualTo(12);
+    }
+
     @ParameterizedTest
     @NullAndEmptySource
     void 支払回数が未入力ならエラー(String paymentCount) {
@@ -98,7 +106,7 @@ class InstallmentInputValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"4", "0", "abc", "12.0", "99999999999"})
+    @ValueSource(strings = {"4", "0", "00", "abc", "12.0", "-12", "99999999999"})
     void 支払回数が一覧になければエラー(String paymentCount) {
         assertThat(errorsOf("100000", paymentCount, "15.0"))
                 .containsExactly(new FieldError("paymentCount", COUNT_INVALID));

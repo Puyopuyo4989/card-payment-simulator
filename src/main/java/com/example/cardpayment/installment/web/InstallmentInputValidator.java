@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 入力の文字列を確かめて InstallmentCondition に変える（data-model.md 1）。項目ごとに「必須 → 形式 → 範囲」の順で確かめ、
@@ -19,8 +20,13 @@ public class InstallmentInputValidator {
 
     private static final BigDecimal MIN_AMOUNT = new BigDecimal("1000");
     private static final BigDecimal MAX_AMOUNT = new BigDecimal("10000000");
-    private static final Set<String> PAYMENT_COUNTS =
-            Set.of("3", "5", "6", "10", "12", "15", "18", "20", "24", "30", "36");
+
+    /** 先頭の0（"012"）も利用金額と同じく受け付けるよう、数として照合する。 */
+    private static final Set<BigDecimal> PAYMENT_COUNTS =
+            Set.of(3, 5, 6, 10, 12, 15, 18, 20, 24, 30, 36).stream()
+                    .map(BigDecimal::valueOf)
+                    .collect(Collectors.toUnmodifiableSet());
+
     private static final BigDecimal MAX_RATE = new BigDecimal("15.0");
 
     public InstallmentCondition validate(InstallmentSimulationRequest request) {
@@ -56,7 +62,8 @@ public class InstallmentInputValidator {
     private static void checkPaymentCount(String paymentCount, List<FieldError> errors) {
         if (paymentCount.isEmpty()) {
             errors.add(new FieldError("paymentCount", "支払回数を選んでください"));
-        } else if (!PAYMENT_COUNTS.contains(paymentCount)) {
+        } else if (!INTEGER.matcher(paymentCount).matches()
+                || !PAYMENT_COUNTS.contains(new BigDecimal(paymentCount))) {
             // 形式の誤りと一覧にない回数は、1つのメッセージにまとめる（data-model.md 1）
             errors.add(
                     new FieldError("paymentCount", "支払回数は3・5・6・10・12・15・18・20・24・30・36回から選んでください"));
