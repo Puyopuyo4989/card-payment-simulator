@@ -169,9 +169,12 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T053 [P] 金額に `double`・`float`・`Math.pow` を使っていないことを確かめる：`grep -rnE '\b(double|float|Double|Float)\b|Math\.pow' src/main/java` が何も出さない。あわせて、自作スキル①（金額計算のレビュー）で `{main}/installment/` を確かめる（原則III、[ADR 0005](../../docs/adr/0005-金額計算と端数処理.md)）
   - 2026-11-20：grep は何も出さなかった。スキル①はまだ作っていないので、代わりに `InstallmentCalculator.java` を ADR 0005 と spec の FR-006・FR-007 に照らして読んだ（`BigDecimal` だけで計算し、割り算は `divide(…, 0, RoundingMode.DOWN)` の3か所だけ）。スキル①ができたら、それでもう一度確かめる
 - [x] T054 [P] フロントで金額を計算していないことを確かめる：`frontend/src/` で、API の結果の金額に `+`・`-`・`*`・`/` をしていない（表示だけ。research.md R6）
-- [ ] T055 `./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II。T013 の閾値）
+- [x] T055 `./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II。T013 の閾値）
+  - 2026-11-20：BUILD SUCCESS。バックエンド 540件・フロント 36件がすべて通過。行・分岐カバレッジは両方とも100%。Spotless・Prettier も通過
 - [ ] T056 [quickstart.md](quickstart.md) の 1〜4 を上から順に行い、すべて期待どおりであることを確かめる（画面の確認 #1〜#8 を含む）。SC-001・SC-005 は自動のテストにせず、次のとおり人が確かめる：Codespaces で `java -jar` で起動し、ブラウザの開発者ツールの Network で `POST /api/installment-simulations` の時間が1秒未満であることを見る。画面を開いてから結果が出るまでを、人がストップウォッチで測り、30秒以内であることを確かめる
+  - 2026-11-20：Claude が 1〜3 を行った。`./mvnw verify` と `./mvnw package` は通過し、jar は1つで、`static/index.html` も入っていた。`java -jar` で起動し、curl で 200（US1-1・US2-5 の値）・年率0%・400（errors 3件、problem+json、type about:blank）・壊れた本文の 400 を確かめた。API の応答は 0.15秒。4（画面の #1〜#8）と、SC-001・SC-005 のブラウザでの計測は、人が行う
 - [ ] T057 Superpowers の requesting-code-review と verification-before-completion を通してから PR を出す（[ADR 0007](../../docs/adr/0007-ツールの使い分け.md)）。AI の出力を人が確かめた結果は、人が `docs/ai-review-log.md` に記録する（constitution「開発ワークフローと人とAIの分担」）
+  - 2026-11-20：スキル②（pre-pr-check。requesting-code-review と verification-before-completion を含む）で確かめた。Critical・Important の指摘はなし。PR の作成と、`docs/ai-review-log.md` への記録は人が行う
 
 ---
 
