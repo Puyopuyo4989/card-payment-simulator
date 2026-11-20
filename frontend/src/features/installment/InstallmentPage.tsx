@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { simulate } from './api'
 import InstallmentForm from './InstallmentForm'
 import InstallmentSummary from './InstallmentSummary'
+import ScheduleTable from './ScheduleTable'
 import type {
   InstallmentSimulationRequest,
   InstallmentSimulationResult,
@@ -20,7 +21,12 @@ export default function InstallmentPage() {
   return (
     <>
       <InstallmentForm onSubmit={handleSubmit} />
-      {result && <InstallmentSummary result={result} />}
+      {result && (
+        <>
+          <InstallmentSummary result={result} />
+          <ScheduleTable schedule={result.schedule} />
+        </>
+      )}
     </>
   )
 }

@@ -120,13 +120,13 @@ description: "分割払いの支払シミュレーションのタスク一覧"
 - [x] T036 [P] [US2] 不変条件のテストを書く：`{test}/installment/domain/InstallmentCalculatorPropertyTest.java`（`@ParameterizedTest`）。利用金額 1,000・1,001・9,999・12,345・100,000・9,999,999・10,000,000円 × 全11種類の支払回数 × 実質年率 0.0・0.1・7.5・12.5・14.9・15.0% の組み合わせで、「行数 ＝ 支払回数」「支払額を足したもの ＝ 支払総額（FR-008）」「元金を足したもの ＝ 利用金額（FR-009）」「最終回の残高 ＝ 0（FR-010）」「各回の手数料を足したもの ＝ 手数料の合計」「元金・残高が負にならない」「初回の支払額 ≧ 2回目以降の支払額」（SC-003、data-model.md 2・3）
 - [x] T037 [P] [US2] API のテストを `{test}/installment/web/InstallmentSimulationControllerTest.java` に足す：100,000円・12回・15.0% で `schedule` が12要素、1要素目が `{"number":1,"payment":9034,"principal":7784,"fee":1250,"balanceAfter":92216}`、12要素目の `balanceAfter` が 0
 - [x] T038 [P] [US2] 返済表の画面のテストを書く：`frontend/src/features/installment/ScheduleTable.test.tsx`。列は左から「回・支払額・手数料・元金・支払後の残高」、行数は `schedule` の要素数、金額は3桁区切り（FR-013・FR-014）
-- [ ] T039 [US2] 画面全体のテストを `frontend/src/features/installment/InstallmentPage.test.tsx` に足す：実行すると、要約の下に返済表が表示される。再実行で前回の返済表が残らない
+- [x] T039 [US2] 画面全体のテストを `frontend/src/features/installment/InstallmentPage.test.tsx` に足す：実行すると、要約の下に返済表が表示される。再実行で前回の返済表が残らない
 
 ### Implementation for User Story 2
 
 - [x] T040 [US2] `{main}/installment/domain/InstallmentCalculator.java` に返済表を足す：残高は利用金額から始め、手数料は「最終回の1つ前まで：切り捨て(前回の残高 × k ÷ 12,000)。最終回：手数料の合計 − それまでの各回の手数料を足したもの。年率0%はすべて0円」、元金 ＝ 支払額 − その回の手数料、支払後の残高 ＝ 前回の残高 − その回の元金（FR-006・FR-007）。T035・T036 が green になる。API は T028 で `schedule` を返しているので、T037 もここで green になる
 - [x] T041 [P] [US2] `frontend/src/features/installment/ScheduleTable.tsx` を作る。T038 が green になる
-- [ ] T042 [US2] `frontend/src/features/installment/InstallmentPage.tsx` で、要約の下に `ScheduleTable` を表示する。T039 が green になる
+- [x] T042 [US2] `frontend/src/features/installment/InstallmentPage.tsx` で、要約の下に `ScheduleTable` を表示する。T039 が green になる
 
 **Checkpoint**: US1 と US2 が両方動く。API のレスポンスが contracts の 200 の形と一致する。
 
