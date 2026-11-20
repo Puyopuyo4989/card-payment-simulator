@@ -9,3 +9,9 @@ test('見出し「分割払いシミュレーション」が表示される', ()
     screen.getByRole('heading', { name: '分割払いシミュレーション' }),
   ).toBeInTheDocument()
 })
+
+test('分割払いの入力フォームが表示される', () => {
+  render(<App />)
+
+  expect(screen.getByRole('button', { name: '計算する' })).toBeInTheDocument()
+})
