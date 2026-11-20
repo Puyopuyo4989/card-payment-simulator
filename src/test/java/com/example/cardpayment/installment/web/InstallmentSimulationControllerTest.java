@@ -71,6 +71,59 @@ class InstallmentSimulationControllerTest {
                 .doesNotContain("100000.0");
     }
 
+    @Test
+    void 入力に誤りがあれば400で項目ごとのエラーを返す() {
+        var result =
+                simulate(
+                        """
+                        {"amount":"","paymentCount":"4","annualRate":"12.25"}
+                        """);
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(result).hasContentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(result).bodyJson().extractingPath("$.type").isEqualTo("about:blank");
+        assertThat(result).bodyJson().extractingPath("$.title").isEqualTo("入力に誤りがあります");
+        assertThat(result).bodyJson().extractingPath("$.status").isEqualTo(400);
+        assertThat(result).bodyJson().extractingPath("$.errors").asArray().hasSize(3);
+        assertThat(result).bodyJson().extractingPath("$.errors[0].field").isEqualTo("amount");
+        assertThat(result)
+                .bodyJson()
+                .extractingPath("$.errors[0].message")
+                .isEqualTo("利用金額を入力してください");
+        assertThat(result).bodyJson().extractingPath("$.errors[1].field").isEqualTo("paymentCount");
+        assertThat(result).bodyJson().extractingPath("$.errors[2].field").isEqualTo("annualRate");
+        // 誤った計算結果を返さない（SC-004）
+        assertThat(result)
+                .body()
+                .asString()
+                .doesNotContain("totalFee")
+                .doesNotContain("totalPayment")
+                .doesNotContain("schedule");
+    }
+
+    @Test
+    void 本文がJSONとして読めなければ400で形式の誤りを返す() {
+        var result = simulate("{\"amount\":");
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(result).hasContentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(result).bodyJson().extractingPath("$.title").isEqualTo("リクエストの形式が正しくありません");
+        assertThat(result).bodyJson().doesNotHavePath("$.errors");
+    }
+
+    @Test
+    void 項目がJSONの数値でも文字列のときと同じ結果を返す() {
+        var result =
+                simulate(
+                        """
+                        {"amount":100000,"paymentCount":12,"annualRate":"15.0"}
+                        """);
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        assertThat(result).bodyJson().extractingPath("$.totalFee").isEqualTo(8309);
+        assertThat(result).bodyJson().extractingPath("$.firstPayment").isEqualTo(9034);
+    }
+
     private MvcTestResult simulate(String json) {
         return mvc.post()
                 .uri("/api/installment-simulations")
