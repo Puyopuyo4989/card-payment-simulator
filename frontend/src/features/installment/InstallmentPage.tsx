@@ -15,7 +15,10 @@ export default function InstallmentPage() {
   async function handleSubmit(request: InstallmentSimulationRequest) {
     // 前回の結果が新しい結果と混ざって見えないよう、APIを呼ぶ前に消す（spec のエッジケース）
     setResult(null)
-    setResult(await simulate(request))
+    const outcome = await simulate(request)
+    if (outcome.kind === 'success') {
+      setResult(outcome.result)
+    }
   }
 
   return (

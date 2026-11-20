@@ -25,10 +25,19 @@ export type InstallmentSimulationResult = {
   schedule: ScheduleRow[]
 }
 
+/** 1つの項目の入力エラー。message は画面にそのまま表示する */
+export type FieldError = {
+  field: 'amount' | 'paymentCount' | 'annualRate'
+  message: string
+}
+
 /** 入力エラー（400）のレスポンス */
 export type InstallmentSimulationErrorResponse = {
-  errors: {
-    field: 'amount' | 'paymentCount' | 'annualRate'
-    message: string
-  }[]
+  errors: FieldError[]
 }
+
+/** API を呼んだ結果。成功・入力エラー・予期しないエラー（errors のない 400、500、通信の失敗）のどれか */
+export type SimulationOutcome =
+  | { kind: 'success'; result: InstallmentSimulationResult }
+  | { kind: 'inputError'; errors: FieldError[] }
+  | { kind: 'unexpectedError' }

@@ -3,13 +3,17 @@ import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { afterEach, expect, test, vi } from 'vitest'
 import { simulate } from './api'
 import InstallmentPage from './InstallmentPage'
-import type { InstallmentSimulationResult } from './types'
+import type { InstallmentSimulationResult, SimulationOutcome } from './types'
 
 vi.mock('./api')
 
 afterEach(() => {
   vi.resetAllMocks()
 })
+
+function success(result: InstallmentSimulationResult): SimulationOutcome {
+  return { kind: 'success', result }
+}
 
 // spec US1 の1（100,000円・12回・15.0%）
 const twelveTimes: InstallmentSimulationResult = {
@@ -72,7 +76,7 @@ async function fillAndSubmit(
 
 test('入力して実行すると、APIの結果を3桁区切りで表示する', async () => {
   const user = userEvent.setup()
-  vi.mocked(simulate).mockResolvedValue(twelveTimes)
+  vi.mocked(simulate).mockResolvedValue(success(twelveTimes))
   render(<InstallmentPage />)
 
   await fillAndSubmit(user, '100000', '12', '15.0')
@@ -96,13 +100,13 @@ test('結果が出る前は、結果を表示しない', () => {
 
 test('入力を変えて再実行すると、前回の結果を消して、新しい結果だけを表示する', async () => {
   const user = userEvent.setup()
-  vi.mocked(simulate).mockResolvedValueOnce(twelveTimes)
+  vi.mocked(simulate).mockResolvedValueOnce(success(twelveTimes))
   render(<InstallmentPage />)
   await fillAndSubmit(user, '100000', '12', '15.0')
   expect(await screen.findByText('8,309円')).toBeInTheDocument()
 
   // 2回目の応答はすぐに返さず、応答の前に前回の結果が消えていることを確かめる
-  let respond!: (result: InstallmentSimulationResult) => void
+  let respond!: (outcome: SimulationOutcome) => void
   vi.mocked(simulate).mockReturnValueOnce(
     new Promise((resolve) => {
       respond = resolve
@@ -111,7 +115,7 @@ test('入力を変えて再実行すると、前回の結果を消して、新�
   await fillAndSubmit(user, '100000', '3', '0.0')
   expect(screen.queryByText('8,309円')).not.toBeInTheDocument()
 
-  respond(threeTimesNoFee)
+  respond(success(threeTimesNoFee))
   expect(await screen.findByText('33,334円')).toBeInTheDocument()
   expect(screen.getByText('0円')).toBeInTheDocument()
   expect(screen.getByText('100,000円')).toBeInTheDocument()
@@ -123,7 +127,7 @@ test('入力を変えて再実行すると、前回の結果を消して、新�
 
 test('実行すると、要約の下に返済表を表示する', async () => {
   const user = userEvent.setup()
-  vi.mocked(simulate).mockResolvedValue(twelveTimesWithSchedule)
+  vi.mocked(simulate).mockResolvedValue(success(twelveTimesWithSchedule))
   render(<InstallmentPage />)
 
   await fillAndSubmit(user, '100000', '12', '15.0')
@@ -139,12 +143,12 @@ test('実行すると、要約の下に返済表を表示する', async () => {
 
 test('再実行すると、前回の返済表を消して、新しい返済表だけを表示する', async () => {
   const user = userEvent.setup()
-  vi.mocked(simulate).mockResolvedValueOnce(twelveTimesWithSchedule)
+  vi.mocked(simulate).mockResolvedValueOnce(success(twelveTimesWithSchedule))
   render(<InstallmentPage />)
   await fillAndSubmit(user, '100000', '12', '15.0')
   expect(await screen.findByRole('table')).toBeInTheDocument()
 
-  let respond!: (result: InstallmentSimulationResult) => void
+  let respond!: (outcome: SimulationOutcome) => void
   vi.mocked(simulate).mockReturnValueOnce(
     new Promise((resolve) => {
       respond = resolve
@@ -153,7 +157,7 @@ test('再実行すると、前回の返済表を消して、新しい返済表�
   await fillAndSubmit(user, '100000', '3', '0.0')
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
 
-  respond(threeTimesNoFee)
+  respond(success(threeTimesNoFee))
   expect(await screen.findByText('33,334円')).toBeInTheDocument()
   expect(screen.queryByText('92,216円')).not.toBeInTheDocument()
 })
