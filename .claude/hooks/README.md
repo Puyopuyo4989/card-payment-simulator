@@ -222,6 +222,7 @@ Claude Code を **起動し直してから** 行います。`/hooks` で `Stop` 
   コマンドそのものが `mvnw`・`mvn`、または `sh`・`bash` で動かした `mvnw`・`mvn`
   （`vim mvnw` のように、引数に `mvnw` があるだけのものは数えない）
 - hook 自身と、hook を動かした側のプロセス（祖先）ではない。hook が Maven のビルドの中から動いても、自分を動かしたビルドを「ほかのビルド」と見間違えない
+- 開発中に動かし続けるゴール（`spring-boot:run`）ではない。起動が終われば verify とはほとんどぶつからず、数えると動かしている間ずっと hook が確認を飛ばし続けるため（`other_builds.py` の `LONG_RUNNING_GOALS`）
 
 手で動かした `./mvnw verify`、lefthook の pre-push、もう一方の hook（PostToolUse の `spotless:apply`、Stop の verify）が、どれも対象になります。
 hook は確かめたあとに自分のコマンドを動かすので、hook 自身が動かしている verify を、確かめるときに数えることはありません。
@@ -234,7 +235,8 @@ hook は確かめたあとに自分のコマンドを動かすので、hook 自�
 | Stop（`verify_on_stop.py`） | verify を動かさず、PID とコマンドと飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュ（`target/verify-on-stop.last-ok`）は残さないので、次に応答を終えるときにもう一度確かめる |
 
 Stop は、止めないと Claude に理由を伝えられないため `block` にしています。Claude がもう一度応答を終えるときは
-`stop_hook_active` が `true` なので、続けて止まることはありません。
+`stop_hook_active` が `true` なので、続けて止まることはありません。そのときも確かめないので、
+確かめ直すのは、ユーザーの次の依頼を受けて応答を終えるときです（Claude に返す文面にもそう書いています）。
 前回成功したときからソースが変わっていなければ、ほかのビルドが動いていても、今までどおり何もしません。
 
 ### 既知の限界
@@ -242,6 +244,11 @@ Stop は、止めないと Claude に理由を伝えられないため `block` �
 - **確かめたあとに始まったビルド**とは、ぶつかることがあります（確かめてから自分のコマンドを動かすまでの間に、手でビルドを始めた場合など）。ロックではなく、動く前に一度確かめるだけの仕組みです。
 - `/proc` がない環境（macOS など）では、ほかのビルドを数えられないので、今までどおり動きます。開発環境は devcontainer（Linux）です。
 - 別のユーザーのプロセスなど、作業ディレクトリを読めないプロセスは数えません。
+- `spring-boot:run` は数えないので、その **起動中**（`npm ci` などでフロントをビルドしている間）に hook が動くと、ぶつかることがあります。
+- プロジェクトの中に作った git worktree（`.claude/worktrees/` など）の中のビルドも、「ほかのビルド」として数えます。
+  worktree は `target/` も `node_modules` も別なので、本当はぶつかりませんが、まれなので区別していません。
+- `other_builds.py` の判定（`parent_pid`・`is_maven`）だけを確かめる単体テストはありません。
+  hook を通したテスト（下の「テスト」）で、数えるもの・数えないものを確かめています。
 
 ### テスト
 
@@ -254,10 +261,14 @@ hook を動かした側のビルドは、hook を Maven に見えるプロセス
 Claude Code を **起動し直してから** 行います。手で動かすビルドは、Claude Code とは別のターミナルで動かします。
 
 1. **準備**
-   - ターミナル A で `python3 .claude/hooks/verify_on_stop.py <<< '{}'` を動かす。verify が成功し、`target/verify-on-stop.last-ok` ができる
+   - ターミナル A で `rm -f target/verify-on-stop.last-ok` のあと `python3 .claude/hooks/verify_on_stop.py <<< '{}'` を動かす。
+     verify が動いて成功し、`target/verify-on-stop.last-ok` ができる（先に消さないと、変更がないときは verify が動かない）
    - `cat target/verify-on-stop.last-ok` で、今のハッシュをメモしておく
 2. **ほかのビルドを動かす**
    - ターミナル A で、もう一度 `./mvnw --batch-mode verify` を動かす（1〜2 分かかる。終わるまで次の 3・4 を行う）
+   - Claude の応答が遅くて 3・4 が間に合わないときは、代わりに、本物のビルドに見える偽のプロセスを 10 分動かす（`tests/fake_maven.py` と同じ考え方）：
+     `python3 -c "import time; time.sleep(600)" org.codehaus.plexus.classworlds.launcher.Launcher verify`。
+     5 に進む前に Ctrl+C で止める
    - ターミナル B で、hook から見えているかを確かめる：
      `python3 -c "import sys; sys.path.insert(0, '.claude/hooks'); import other_builds; print(other_builds.find_other_maven_builds('.'))"`
      → `[(PID, 'mvn --batch-mode verify')]` のように 1 件出る
