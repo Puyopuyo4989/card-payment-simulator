@@ -10,11 +10,16 @@
       vitest related でそのファイルに関係するテストだけを動かす。
   - それ以外のファイルでは何もしない。
 
+ほかの Maven のビルド（verify、pre-push、Stop の hook など）が動いているとき:
+  何も動かさず、その理由を additionalContext で Claude に伝える（other_builds.py）。
+
 テスト: python3 -m unittest discover -s .claude/hooks/tests -v
 
 入力: stdin に PostToolUse の hook 入力 JSON
 出力: フォーマットかテストが失敗したときは decision=block と失敗の内容を含む JSON を
       stdout に出して exit 0（内容は Claude に返され、Claude が直せる）。
+      ほかの Maven のビルドが動いていて飛ばしたときは、hookSpecificOutput.additionalContext に
+      飛ばした理由を入れた JSON を stdout に出して exit 0（止めずに Claude に伝える）。
       成功したとき・対象外のときは何も出力せず exit 0。
 """
 import json
@@ -23,6 +28,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
+
+import other_builds
 
 # Claude に返す出力の上限（長すぎると読みにくいので末尾だけ残す）
 MAX_OUTPUT_CHARS = 4000
@@ -99,6 +106,13 @@ def block(reason: str) -> None:
     sys.exit(0)
 
 
+def skip(context: str) -> None:
+    """確認を飛ばしたことを、止めずに（block にせず）Claude に伝える。"""
+    output = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": context}}
+    print(json.dumps(output, ensure_ascii=False))
+    sys.exit(0)
+
+
 def main() -> None:
     try:
         data = json.load(sys.stdin)
@@ -112,6 +126,16 @@ def main() -> None:
     kind = classify(file_path, project_dir)
     if kind is None:
         sys.exit(0)
+
+    builds = other_builds.find_other_maven_builds(project_dir)
+    if builds:
+        skip(
+            f"ほかの Maven のビルドが動いているので、{file_path} の変更後のフォーマットとテストを今回は飛ばしました: "
+            f"{other_builds.summary(builds)}。\n"
+            f"同時に動かすと、node_modules や target/ が入れ替わる途中のものを読んで失敗するためです。"
+            f"Spotless・Prettier では直していません。Stop の hook の ./mvnw verify はフォーマットを確かめるだけなので、"
+            f"そこで落ちたら直してください。応答を終えるときにまだビルドが動いていれば、Stop の hook も飛ばします。"
+        )
 
     abs_path = str(Path(file_path).resolve())
     commands = (java_commands if kind == "java" else frontend_commands)(abs_path, project_dir)
