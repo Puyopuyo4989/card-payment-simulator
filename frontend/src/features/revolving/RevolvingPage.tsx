@@ -4,13 +4,22 @@ import { simulate } from './api'
 import RevolvingForm from './RevolvingForm'
 import RevolvingSummary from './RevolvingSummary'
 
-/** 入力 → 結果の表示。新しい結果だけを表示する（実行中の扱いは分割払いと共通の useSimulation） */
+/** 入力 → 結果かエラーの表示。新しい結果かエラーのどちらかだけを表示する（実行中の扱いは分割払いと共通の useSimulation） */
 export default function RevolvingPage() {
   const { outcome, submitting, submit } = useSimulation(simulate)
 
   return (
     <>
-      <RevolvingForm onSubmit={submit} submitting={submitting} />
+      <RevolvingForm
+        onSubmit={submit}
+        submitting={submitting}
+        errors={outcome?.kind === 'inputError' ? outcome.errors : []}
+      />
+      {outcome?.kind === 'unexpectedError' && (
+        <p className="field-error" role="alert">
+          計算できませんでした。もう一度お試しください
+        </p>
+      )}
       {outcome?.kind === 'success' && (
         <>
           <RevolvingSummary result={outcome.result} />

@@ -40,6 +40,66 @@ test('3項目を文字列のまま JSON の本文にして POST /api/revolving-s
   )
 })
 
+test('400 で errors があるときは、項目ごとのエラーを返す', async () => {
+  // contracts の「払い終わらない」ときのエラー
+  const errors = [
+    {
+      field: 'monthlyPayment',
+      message:
+        '毎月の支払額が1回目の手数料以下のため、残高が減りません。毎月の支払額を増やしてください',
+    },
+  ]
+  stubFetch(
+    Response.json(
+      {
+        type: 'about:blank',
+        title: '入力に誤りがあります',
+        status: 400,
+        errors,
+      },
+      { status: 400 },
+    ),
+  )
+
+  await expect(simulate(request)).resolves.toEqual({
+    kind: 'inputError',
+    errors,
+  })
+})
+
+test('errors がない 400 のときは、予期しないエラーを返す', async () => {
+  stubFetch(
+    Response.json(
+      {
+        type: 'about:blank',
+        title: 'リクエストの形式が正しくありません',
+        status: 400,
+      },
+      { status: 400 },
+    ),
+  )
+
+  await expect(simulate(request)).resolves.toEqual({
+    kind: 'unexpectedError',
+  })
+})
+
+test('500 のときは、予期しないエラーを返す', async () => {
+  stubFetch(new Response('Internal Server Error', { status: 500 }))
+
+  await expect(simulate(request)).resolves.toEqual({
+    kind: 'unexpectedError',
+  })
+})
+
+test('通信に失敗したときは、予期しないエラーを返す', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed')))
+
+  await expect(simulate(request)).resolves.toEqual({
+    kind: 'unexpectedError',
+  })
+})
+
 test('200 のときは結果を返す', async () => {
   stubFetch(Response.json(result))
 

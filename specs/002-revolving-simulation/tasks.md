@@ -235,13 +235,14 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 3（先に書き、red を確かめる）
 
-- [ ] T051 [P] [US3] API の呼び出しのテストを `frontend/src/features/revolving/api.test.ts` に足す：400 で `errors` があるときは項目ごとのエラーを返す。`errors` がない 400・500・通信の失敗のときは「予期しないエラー」を返す
-- [ ] T052 [P] [US3] 入力フォームのテストを `frontend/src/features/revolving/RevolvingForm.test.tsx` に足す：`balance`・`monthlyPayment`・`annualRate` のエラーを渡すと、その項目の入力欄のすぐ下にメッセージを表示する。`role="alert"`・`className="field-error"`、入力欄と `aria-describedby` で結び付き、`aria-invalid` が付く。ポップアップは使わない
-- [ ] T053 [US3] 画面全体のテストを `frontend/src/features/revolving/RevolvingPage.test.tsx` に足す：入力エラーのとき結果（要約・返済表）は表示されない。正しい結果のあとにエラーの入力で再実行すると、前回の結果が消えてエラーだけが表示される。エラーのあとに正しい入力で再実行すると、エラーが消える。予期しないエラーのときは「計算できませんでした。もう一度お試しください」を表示する。実行が終わったら、フォーカスが外れていれば「計算する」に戻る
+- [x] T051 [P] [US3] API の呼び出しのテストを `frontend/src/features/revolving/api.test.ts` に足す：400 で `errors` があるときは項目ごとのエラーを返す。`errors` がない 400・500・通信の失敗のときは「予期しないエラー」を返す
+- [x] T052 [P] [US3] 入力フォームのテストを `frontend/src/features/revolving/RevolvingForm.test.tsx` に足す：`balance`・`monthlyPayment`・`annualRate` のエラーを渡すと、その項目の入力欄のすぐ下にメッセージを表示する。`role="alert"`・`className="field-error"`、入力欄と `aria-describedby` で結び付き、`aria-invalid` が付く。ポップアップは使わない
+- [x] T053 [US3] 画面全体のテストを `frontend/src/features/revolving/RevolvingPage.test.tsx` に足す：入力エラーのとき結果（要約・返済表）は表示されない。正しい結果のあとにエラーの入力で再実行すると、前回の結果が消えてエラーだけが表示される。エラーのあとに正しい入力で再実行すると、エラーが消える。予期しないエラーのときは「計算できませんでした。もう一度お試しください」を表示する。実行が終わったら、フォーカスが外れていれば「計算する」に戻る
 
 ### Implementation for User Story 3
 
-- [ ] T054 [US3] T051〜T053 を green にする：共通の `postSimulation`・`fieldErrors`・`useSimulation`・`useReturnFocus` で実現しているので、足りないところだけを `frontend/src/features/revolving/RevolvingForm.tsx`・`RevolvingPage.tsx` に足す
+- [x] T054 [US3] T051〜T053 を green にする：共通の `postSimulation`・`fieldErrors`・`useSimulation`・`useReturnFocus` で実現しているので、足りないところだけを `frontend/src/features/revolving/RevolvingForm.tsx`・`RevolvingPage.tsx` に足す
+  - 2026-11-24：進め方の記録。T051 の4件は、最初から通った（共通の `postSimulation` の動きで、Phase 5 の `postSimulation.test.ts` で red から確かめ済み）。T052 の「ポップアップで出さない」「エラーのない項目には付けない」も、「出さない」ことを確かめるテストなので最初から通った。それ以外の9件は red を確かめてから、`RevolvingForm` に `fieldErrors` を、`RevolvingPage` にエラーの受け渡しと予期しないエラーのメッセージを足した。まとまり B のあと、フロント 83件がすべて通り、カバレッジは 79/79・37/37
 
 **Checkpoint**: まとまり B が終わる。3つのストーリーが画面で動き、分割払いの画面も変わらず動く。
 
