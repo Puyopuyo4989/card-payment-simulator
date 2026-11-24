@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
+    // Vitest は CSS の中身を空にするが、コントラスト比のテスト（src/styles/contrast.test.ts）が色を読めるよう、tokens.css だけは中身を返す
+    css: { include: [/tokens\.css/] },
     // 除外は ADR 0006 に書いたものだけにする。vite.config.ts は include の外にある
     coverage: {
       provider: 'v8',
