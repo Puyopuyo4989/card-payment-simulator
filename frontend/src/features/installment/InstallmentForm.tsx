@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
+import { fieldErrors } from '../../shared/fieldErrors'
+import { useReturnFocus } from '../../shared/useReturnFocus'
 import type { FieldError, InstallmentSimulationRequest } from './types'
 
 /** 支払回数の選択肢（FR-003） */
@@ -26,8 +28,7 @@ type Props = {
 
 /**
  * 入力フォーム。入力のチェックはサーバーが行うので、入力されたままの文字列を渡す（research.md R8）。
- * エラーは入力欄のすぐ下に赤字で出し、aria-describedby で入力欄と結び付ける（ポップアップは使わない）。
- * role="alert" で、出たことをスクリーンリーダーに伝える
+ * エラーの表示とフォーカスを戻す処理は、リボ払いと共通（shared/fieldErrors・shared/useReturnFocus）
  */
 export default function InstallmentForm({
   onSubmit,
@@ -37,47 +38,13 @@ export default function InstallmentForm({
   const [amount, setAmount] = useState('')
   const [paymentCount, setPaymentCount] = useState('')
   const [annualRate, setAnnualRate] = useState('')
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const wasSubmitting = useRef(false)
-
-  // 押せなくなったボタンからはフォーカスが外れるので、実行が終わったらボタンに戻す（キーボードの利用者のため）。
-  // 入力欄で Enter を押したときなど、フォーカスがどこかにあるときは動かさない
-  useEffect(() => {
-    if (
-      wasSubmitting.current &&
-      !submitting &&
-      document.activeElement === document.body
-    ) {
-      buttonRef.current?.focus()
-    }
-    wasSubmitting.current = submitting
-  }, [submitting])
+  const buttonRef = useReturnFocus(submitting)
+  const { attributes: errorAttributes, message: errorMessage } =
+    fieldErrors(errors)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     onSubmit({ amount, paymentCount, annualRate })
-  }
-
-  function messageOf(field: FieldError['field']) {
-    return errors.find((error) => error.field === field)?.message
-  }
-
-  /** エラーがある項目の入力欄に付ける属性 */
-  function errorAttributes(field: FieldError['field']) {
-    return messageOf(field)
-      ? { 'aria-invalid': true, 'aria-describedby': `${field}-error` }
-      : {}
-  }
-
-  function errorMessage(field: FieldError['field']) {
-    const message = messageOf(field)
-    return (
-      message && (
-        <p id={`${field}-error`} className="field-error" role="alert">
-          {message}
-        </p>
-      )
-    )
   }
 
   return (

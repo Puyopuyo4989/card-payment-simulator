@@ -9,6 +9,6 @@ test('main.tsx を読み込むと #root の中に見出しが表示される', a
   await import('./main')
 
   expect(
-    await findByRole(root, 'heading', { name: '分割払いシミュレーション' }),
+    await findByRole(root, 'heading', { name: 'カード支払シミュレーション' }),
   ).toBeInTheDocument()
 })
