@@ -61,6 +61,18 @@ test('「リボ払い」を押すと選んでいるタブが入れ替わり、�
   ).not.toBeInTheDocument()
 })
 
+test('「リボ払い」を押すと、リボ払いの入力フォームがタブの中に表示される', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(screen.getByRole('tab', { name: 'リボ払い' }))
+
+  const panel = screen.getByRole('tabpanel', { name: 'リボ払い' })
+  expect(
+    within(panel).getByRole('textbox', { name: '毎月の支払額（円）' }),
+  ).toBeInTheDocument()
+})
+
 test('「分割払い」に戻すと、分割払いのフォームがまた表示される', async () => {
   const user = userEvent.setup()
   render(<App />)

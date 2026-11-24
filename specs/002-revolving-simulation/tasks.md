@@ -190,19 +190,20 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 1（先に書き、red を確かめる）
 
-- [ ] T039 [P] [US1] API の呼び出しのテストを書く：`frontend/src/features/revolving/api.test.ts`。`fetch` を差し替え、`POST /api/revolving-simulations` に JSON の本文（`balance`・`monthlyPayment`・`annualRate`。3項目とも文字列のまま）を送ること、200 のときに結果を返すこと
-- [ ] T040 [US1] T039 がコンパイルで失敗すること（red）を確かめてから、`frontend/src/features/revolving/types.ts` を作る：リクエスト `{ balance: string; monthlyPayment: string; annualRate: string }`、成功のレスポンス（`paymentCount`・`totalFee`・`totalPayment`・`schedule: ScheduleRow[]`。すべて number）、`FieldError<'balance' | 'monthlyPayment' | 'annualRate'>`。項目名は [contracts](contracts/revolving-simulation-api.md) と同じ
-- [ ] T041 [P] [US1] 結果の要約のテストを書く：`frontend/src/features/revolving/RevolvingSummary.test.tsx`。完済までの支払回数（「11回」）・手数料の合計（「7,497円」）・支払総額（「107,497円」）を表示する。金額は3桁区切り（FR-013・FR-015）
-- [ ] T042 [P] [US1] 入力フォームのテストを書く：`frontend/src/features/revolving/RevolvingForm.test.tsx`。「利用残高（円）」「毎月の支払額（円）」「実質年率（%）」の3つとも文字の入力欄（`type="text"`。利用残高・毎月の支払額は `inputMode="numeric"`、実質年率は `inputMode="decimal"`）。実行すると、入力されたままの文字列で送信の処理が呼ばれる。実行中は「計算する」を押せない
-- [ ] T043 [US1] 画面全体のテストを書く：`frontend/src/features/revolving/RevolvingPage.test.tsx`（`vi.mock` で `./api` を差し替え）。100,000円・10,000円・15.0% を入力して実行すると、11回・7,497円・107,497円が表示される。入力を変えて再実行すると、前回の結果が残らず新しい結果だけが表示される
-- [ ] T044 [US1] `frontend/src/App.test.tsx` に足す：「リボ払い」のタブを押すと、リボ払いのフォーム（「毎月の支払額（円）」の入力欄）が表示される。red を確かめる
+- [x] T039 [P] [US1] API の呼び出しのテストを書く：`frontend/src/features/revolving/api.test.ts`。`fetch` を差し替え、`POST /api/revolving-simulations` に JSON の本文（`balance`・`monthlyPayment`・`annualRate`。3項目とも文字列のまま）を送ること、200 のときに結果を返すこと
+- [x] T040 [US1] T039 がコンパイルで失敗すること（red）を確かめてから、`frontend/src/features/revolving/types.ts` を作る：リクエスト `{ balance: string; monthlyPayment: string; annualRate: string }`、成功のレスポンス（`paymentCount`・`totalFee`・`totalPayment`・`schedule: ScheduleRow[]`。すべて number）、`FieldError<'balance' | 'monthlyPayment' | 'annualRate'>`。項目名は [contracts](contracts/revolving-simulation-api.md) と同じ
+- [x] T041 [P] [US1] 結果の要約のテストを書く：`frontend/src/features/revolving/RevolvingSummary.test.tsx`。完済までの支払回数（「11回」）・手数料の合計（「7,497円」）・支払総額（「107,497円」）を表示する。金額は3桁区切り（FR-013・FR-015）
+- [x] T042 [P] [US1] 入力フォームのテストを書く：`frontend/src/features/revolving/RevolvingForm.test.tsx`。「利用残高（円）」「毎月の支払額（円）」「実質年率（%）」の3つとも文字の入力欄（`type="text"`。利用残高・毎月の支払額は `inputMode="numeric"`、実質年率は `inputMode="decimal"`）。実行すると、入力されたままの文字列で送信の処理が呼ばれる。実行中は「計算する」を押せない
+- [x] T043 [US1] 画面全体のテストを書く：`frontend/src/features/revolving/RevolvingPage.test.tsx`（`vi.mock` で `./api` を差し替え）。100,000円・10,000円・15.0% を入力して実行すると、11回・7,497円・107,497円が表示される。入力を変えて再実行すると、前回の結果が残らず新しい結果だけが表示される
+- [x] T044 [US1] `frontend/src/App.test.tsx` に足す：「リボ払い」のタブを押すと、リボ払いのフォーム（「毎月の支払額（円）」の入力欄）が表示される。red を確かめる
 
 ### Implementation for User Story 1
 
-- [ ] T045 [P] [US1] `frontend/src/features/revolving/api.ts` を作る：`simulate(request)` が `postSimulation('/api/revolving-simulations', request)` を呼ぶ。T039 が green になる
-- [ ] T046 [P] [US1] `frontend/src/features/revolving/RevolvingSummary.tsx` を作る（`formatYen` を使う。金額の計算はしない）。T041 が green になる
-- [ ] T047 [P] [US1] `frontend/src/features/revolving/RevolvingForm.tsx` を作る（`useReturnFocus`・`fieldErrors` を使う）。T042 が green になる
-- [ ] T048 [US1] `frontend/src/features/revolving/RevolvingPage.tsx` を作り（`useSimulation` を使う）、`frontend/src/App.tsx` の「リボ払い」のタブの中に表示する。T043・T044 が green になる
+- [x] T045 [P] [US1] `frontend/src/features/revolving/api.ts` を作る：`simulate(request)` が `postSimulation('/api/revolving-simulations', request)` を呼ぶ。T039 が green になる
+- [x] T046 [P] [US1] `frontend/src/features/revolving/RevolvingSummary.tsx` を作る（`formatYen` を使う。金額の計算はしない）。T041 が green になる
+- [x] T047 [P] [US1] `frontend/src/features/revolving/RevolvingForm.tsx` を作る（`useReturnFocus`・`fieldErrors` を使う）。T042 が green になる
+  - 2026-11-24：`fieldErrors`（入力エラーの表示）は、US1 のテストでは確かめないので、ここでは足さず T054 に回した（テストより先に書かないため）。返済表も同じ理由で T050 に回した
+- [x] T048 [US1] `frontend/src/features/revolving/RevolvingPage.tsx` を作り（`useSimulation` を使う）、`frontend/src/App.tsx` の「リボ払い」のタブの中に表示する。T043・T044 が green になる
 
 **Checkpoint**: 画面で US1 が動く（MVP）。
 

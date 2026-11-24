@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import InstallmentPage from './features/installment/InstallmentPage'
+import RevolvingPage from './features/revolving/RevolvingPage'
 
 const TABS = [
   { id: 'installment', label: '分割払い' },
@@ -39,6 +40,7 @@ export default function App() {
         aria-labelledby={`${selected}-tab`}
       >
         {selected === 'installment' && <InstallmentPage />}
+        {selected === 'revolving' && <RevolvingPage />}
       </div>
     </>
   )
