@@ -2,6 +2,7 @@ package com.example.cardpayment.revolving.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -174,6 +175,30 @@ class RevolvingSimulationControllerTest {
                 .bodyJson()
                 .extractingPath("$.errors[0].message")
                 .isEqualTo("完済までの回数が360回を超えます。毎月の支払額を増やしてください");
+    }
+
+    @Test
+    void ほかの項目が誤っていれば1回目の手数料以下と360回を超えるのエラーを返さない() {
+        // contracts「この契約で確かめるテスト」の400。支払額だけ見れば、それぞれ US3 の4・tasks.md T001 の950,000円で払い終わらない条件
+        var feeNotCovered =
+                simulate(
+                        """
+                        {"balance":"10000000","monthlyPayment":"125000","annualRate":"abc"}
+                        """);
+        var tooManyPayments =
+                simulate(
+                        """
+                        {"balance":"950000","monthlyPayment":"12000","annualRate":"abc"}
+                        """);
+
+        for (MvcTestResult result : List.of(feeNotCovered, tooManyPayments)) {
+            assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+            assertThat(result).bodyJson().extractingPath("$.errors").asArray().hasSize(1);
+            assertThat(result)
+                    .bodyJson()
+                    .extractingPath("$.errors[0].field")
+                    .isEqualTo("annualRate");
+        }
     }
 
     @Test
