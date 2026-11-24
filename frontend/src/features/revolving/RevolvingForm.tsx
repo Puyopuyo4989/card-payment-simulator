@@ -33,8 +33,8 @@ export default function RevolvingForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
+    <form className="form" onSubmit={handleSubmit}>
+      <div className="form-field">
         <label htmlFor="balance">利用残高（円）</label>
         <input
           id="balance"
@@ -46,7 +46,7 @@ export default function RevolvingForm({
         />
         {errorMessage('balance')}
       </div>
-      <div>
+      <div className="form-field">
         <label htmlFor="monthlyPayment">毎月の支払額（円）</label>
         <input
           id="monthlyPayment"
@@ -58,7 +58,7 @@ export default function RevolvingForm({
         />
         {errorMessage('monthlyPayment')}
       </div>
-      <div>
+      <div className="form-field">
         <label htmlFor="annualRate">実質年率（%）</label>
         <input
           id="annualRate"
@@ -70,9 +70,16 @@ export default function RevolvingForm({
         />
         {errorMessage('annualRate')}
       </div>
-      <button ref={buttonRef} type="submit" disabled={submitting}>
-        計算する
-      </button>
+      <div className="form-actions">
+        <button
+          ref={buttonRef}
+          type="submit"
+          className="button"
+          disabled={submitting}
+        >
+          計算する
+        </button>
+      </div>
     </form>
   )
 }

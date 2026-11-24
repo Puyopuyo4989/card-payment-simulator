@@ -1,0 +1,60 @@
+/*
+ * 画面のデザインの値（色・余白・角の丸み・文字）を1か所にまとめる（FR-019〜FR-022）。
+ * 申込管理の画面など、ほかの画面にもこのファイルをそのまま読み込んで使う。
+ *
+ * 色を変えたら、src/styles/contrast.test.ts で文字と背景のコントラスト比（WCAG 2.1 AA）を確かめる。
+ * 色はテストが読めるよう、#rrggbb の6桁で書く
+ */
+:root {
+  /* 色：明るい緑を基調にする */
+  --color-brand: #2e9e5b; /* ロゴ・飾りの線（明るい緑。文字には使わない） */
+  --color-primary: #1a7f45; /* ボタン・選んでいるタブ */
+  --color-primary-strong: #146236; /* ボタンにマウスを重ねたとき */
+  --color-primary-soft: #e3f5e9; /* 返済表の見出し・要約の背景 */
+  --color-on-primary: #ffffff; /* 緑の上の文字 */
+  --color-bg: #f2faf4; /* ページの背景（うすい緑） */
+  --color-surface: #ffffff; /* カードの背景 */
+  --color-row-alt: #f6fbf7; /* 返済表の1行おきの行 */
+  --color-heading: #146236; /* 見出しの文字 */
+  --color-text: #1b2e24; /* 本文 */
+  --color-text-muted: #4a5e53; /* 補足の文字 */
+  --color-border: #cfe3d6; /* カード・表の区切りの線（飾り） */
+  --color-border-strong: #6b8f79; /* 入力欄の枠 */
+  --color-focus: #146236; /* フォーカスの輪 */
+  --color-error: #b3261e; /* 入力エラーの赤字 */
+  --color-error-bg: #fdecec; /* 入力エラーの背景（緑の中で目立たせる） */
+
+  /* 余白 */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* 角の丸み */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-full: 999px;
+
+  /* 文字 */
+  --font-family:
+    system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI',
+    Meiryo, sans-serif;
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --line-height: 1.6;
+
+  /* フォーム：ラベルの列と入力欄の列の幅 */
+  --form-label-width: 10em;
+  --form-input-width: 16em;
+
+  /* 影 */
+  --shadow-card:
+    0 1px 3px rgb(27 46 36 / 0.08), 0 4px 12px rgb(27 46 36 / 0.06);
+
+  /* ページの最大の幅 */
+  --page-max-width: 48rem;
+}

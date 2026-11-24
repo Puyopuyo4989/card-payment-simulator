@@ -56,3 +56,14 @@ test('行数は返済表の要素の数で、金額は3桁区切りで表示す�
     '0円',
   ])
 })
+
+test('見出しとすべての数字の列に、右寄せで桁をそろえる class（num）を付ける（分割払いの FR-020）', () => {
+  render(<ScheduleTable schedule={schedule} />)
+
+  for (const header of screen.getAllByRole('columnheader')) {
+    expect(header).toHaveClass('num')
+  }
+  for (const cell of screen.getAllByRole('cell')) {
+    expect(cell).toHaveClass('num')
+  }
+})

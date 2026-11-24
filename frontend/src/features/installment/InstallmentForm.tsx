@@ -48,8 +48,8 @@ export default function InstallmentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
+    <form className="form" onSubmit={handleSubmit}>
+      <div className="form-field">
         <label htmlFor="amount">利用金額（円）</label>
         <input
           id="amount"
@@ -61,7 +61,7 @@ export default function InstallmentForm({
         />
         {errorMessage('amount')}
       </div>
-      <div>
+      <div className="form-field">
         <label htmlFor="paymentCount">支払回数</label>
         <select
           id="paymentCount"
@@ -78,7 +78,7 @@ export default function InstallmentForm({
         </select>
         {errorMessage('paymentCount')}
       </div>
-      <div>
+      <div className="form-field">
         <label htmlFor="annualRate">実質年率（%）</label>
         <input
           id="annualRate"
@@ -90,9 +90,16 @@ export default function InstallmentForm({
         />
         {errorMessage('annualRate')}
       </div>
-      <button ref={buttonRef} type="submit" disabled={submitting}>
-        計算する
-      </button>
+      <div className="form-actions">
+        <button
+          ref={buttonRef}
+          type="submit"
+          className="button"
+          disabled={submitting}
+        >
+          計算する
+        </button>
+      </div>
     </form>
   )
 }
