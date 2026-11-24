@@ -264,6 +264,14 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
   - 2026-11-24：人の指示。PR の説明文に「verify の失敗に備えた手順も追加」と書く（コミット `a7d49d6`。CLAUDE.md の「./mvnw verify でテスト用の JVM が止まったとき」と、`.gitignore` の `logs/`）
 - [ ] T060 main に入ったあと、EC2 の画面で quickstart.md 5 を確かめる（sprint-plan の Day6 のゴール）
 
+### スキル②のレビューから足した修正（2026-11-24）
+
+T059 のスキル②のレビュー（1回目）の指摘のうち、人が直すと決めたもの。
+
+- [x] T061 [US3] contracts の「どれかの項目が誤っているときは『1回目の手数料以下』『360回を超える』を返さない」を確かめるテストを `{test}/revolving/web/RevolvingSimulationControllerTest.java` に足す（Important 1。`28390e8`）。今の作りで通るテストなので、一時的に入力チェックが余分なエラーを返すように壊し、このテストが失敗することを確かめてから元に戻した
+- [x] T062 ブラウザのタブのタイトル（`frontend/index.html`）を、見出しと同じ「カード支払シミュレーション」にする（Minor 1。`f025a01`。先にテストで red を確かめた）
+- [x] T063 選んでいるタブに CSS のクラス `tab-selected` を付け、太字と下線で見た目でも区別できるようにする（Minor 2。`c29e637`。先にテストで red を確かめた）
+
 ---
 
 ## Dependencies & Execution Order
