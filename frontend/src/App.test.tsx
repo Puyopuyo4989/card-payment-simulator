@@ -83,6 +83,27 @@ test('「分割払い」に戻すと、分割払いのフォームがまた表�
   expect(screen.getByRole('combobox', { name: '支払回数' })).toBeInTheDocument()
 })
 
+test('選んでいるタブだけに、見た目で区別するための CSS のクラスが付く', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+
+  expect(screen.getByRole('tab', { name: '分割払い' })).toHaveClass(
+    'tab-selected',
+  )
+  expect(screen.getByRole('tab', { name: 'リボ払い' })).not.toHaveClass(
+    'tab-selected',
+  )
+
+  await user.click(screen.getByRole('tab', { name: 'リボ払い' }))
+
+  expect(screen.getByRole('tab', { name: 'リボ払い' })).toHaveClass(
+    'tab-selected',
+  )
+  expect(screen.getByRole('tab', { name: '分割払い' })).not.toHaveClass(
+    'tab-selected',
+  )
+})
+
 test('タブと表示中のパネルは aria-controls と aria-labelledby で結び付いている', () => {
   render(<App />)
 

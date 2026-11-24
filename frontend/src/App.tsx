@@ -28,6 +28,7 @@ export default function App() {
             id={`${tab.id}-tab`}
             aria-selected={tab.id === selected}
             aria-controls={`${tab.id}-panel`}
+            className={tab.id === selected ? 'tab-selected' : undefined}
             onClick={() => setSelected(tab.id)}
           >
             {tab.label}
