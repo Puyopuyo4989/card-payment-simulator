@@ -49,3 +49,28 @@ test('初回と2回目以降が同じときは、毎月の支払額として1つ
   expect(screen.queryByText('初回の支払額')).not.toBeInTheDocument()
   expect(screen.queryByText('2回目以降の支払額')).not.toBeInTheDocument()
 })
+
+test('金額（dd）には、右寄せで桁をそろえる class（num）を付ける（FR-020）', () => {
+  render(
+    <InstallmentSummary
+      result={{
+        totalFee: 8309,
+        totalPayment: 108309,
+        firstPayment: 9034,
+        subsequentPayment: 9025,
+        schedule: [],
+      }}
+    />,
+  )
+
+  for (const label of [
+    '手数料の合計',
+    '支払総額',
+    '初回の支払額',
+    '2回目以降の支払額',
+  ]) {
+    expect(
+      screen.getByText(label, { selector: 'dt' }).nextElementSibling,
+    ).toHaveClass('num')
+  }
+})

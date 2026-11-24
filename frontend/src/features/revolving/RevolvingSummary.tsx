@@ -14,11 +14,11 @@ export default function RevolvingSummary({ result }: Props) {
   ] as const
 
   return (
-    <dl>
+    <dl className="summary">
       {items.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd>{value}</dd>
+          <dd className="num">{value}</dd>
         </div>
       ))}
     </dl>

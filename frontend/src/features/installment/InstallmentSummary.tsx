@@ -21,11 +21,11 @@ export default function InstallmentSummary({ result }: Props) {
   ]
 
   return (
-    <dl>
+    <dl className="summary">
       {items.map(([label, amount]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd>{formatYen(amount)}</dd>
+          <dd className="num">{formatYen(amount)}</dd>
         </div>
       ))}
     </dl>

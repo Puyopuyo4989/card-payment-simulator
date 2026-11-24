@@ -43,3 +43,22 @@ test('手数料が0円のときも0円と表示する', () => {
   expect(valueOf('手数料の合計')).toBe('0円')
   expect(valueOf('支払総額')).toBe('100,000円')
 })
+
+test('値（dd）には、右寄せで桁をそろえる class（num）を付ける（分割払いの FR-020）', () => {
+  render(
+    <RevolvingSummary
+      result={{
+        paymentCount: 11,
+        totalFee: 7497,
+        totalPayment: 107497,
+        schedule: [],
+      }}
+    />,
+  )
+
+  for (const label of ['完済までの支払回数', '手数料の合計', '支払総額']) {
+    expect(
+      screen.getByText(label, { selector: 'dt' }).nextElementSibling,
+    ).toHaveClass('num')
+  }
+})
