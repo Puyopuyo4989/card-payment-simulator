@@ -61,6 +61,9 @@ API は3項目を文字列で受け取る（[research.md](research.md) R6）。�
 
 ## 3. 返済表の行（ScheduleRow）
 
+リボ払いと共通の `common/domain/ScheduleRow` を使う。API のレスポンスには、共通の `common/web/ScheduleRowResponse` に変えて返す
+（2026-11-24、`specs/002-revolving-simulation/` の T005・T006。JSON の形は変わらない）。
+
 | 項目 | API の名前 | Java の型 | 計算 | 根拠 |
 |---|---|---|---|---|
 | 回 | `number` | `int` | 1〜支払回数 | FR-013 |
