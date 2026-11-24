@@ -163,7 +163,7 @@ Claude Code を **起動し直してから**（hook の設定は起動時に読�
 |------|----------|
 | hook 入力の `stop_hook_active` が `true` | 何もしない（この hook で一度止めたあとなので、同じ失敗で止まり続けないようにする） |
 | 前回 verify が成功したときから `src/` と `frontend/src/` の中身が変わっていない | 何もしない（verify は 1〜2 分かかるため） |
-| ほかの Maven のビルドが動いている | verify を動かさず、飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュは残さないので、次に応答を終えるときにもう一度確かめる。下の「[ほかのビルドとぶつからないようにする](#ほかのビルドとぶつからないようにするother_buildspy)」 |
+| ほかの Maven のビルドが動いている | verify を動かさず、飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュは残さないので、次にユーザーの依頼を受けて応答を終えるときに確かめる。下の「[ほかのビルドとぶつからないようにする](#ほかのビルドとぶつからないようにするother_buildspy)」 |
 | それ以外 | verify を動かす。成功したら何も出さずに終わる。失敗したら `decision: "block"` と出力の末尾 4000 文字を Claude に返し、Claude は応答を終えずに直す |
 
 - 変わったかどうかは、`src/` と `frontend/src/` の全ファイルのパスと中身のハッシュで比べます。
@@ -232,7 +232,7 @@ hook は確かめたあとに自分のコマンドを動かすので、hook 自�
 | hook | やること |
 |------|----------|
 | PostToolUse（`format_and_test.py`） | 何も動かさず、PID とコマンドと飛ばした理由を `additionalContext` で Claude に伝える。止めない（編集は済んでいるため） |
-| Stop（`verify_on_stop.py`） | verify を動かさず、PID とコマンドと飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュ（`target/verify-on-stop.last-ok`）は残さないので、次に応答を終えるときにもう一度確かめる |
+| Stop（`verify_on_stop.py`） | verify を動かさず、PID とコマンドと飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュ（`target/verify-on-stop.last-ok`）は残さないので、次にユーザーの依頼を受けて応答を終えるときに確かめる |
 
 Stop は、止めないと Claude に理由を伝えられないため `block` にしています。Claude がもう一度応答を終えるときは
 `stop_hook_active` が `true` なので、続けて止まることはありません。そのときも確かめないので、
