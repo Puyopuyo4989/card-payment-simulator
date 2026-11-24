@@ -91,6 +91,7 @@ python3 -m unittest discover -s .claude/hooks/tests -v
 | `src/**/*.java` | そのファイルだけを Spotless（`spotless:apply`）でフォーマットする。テストは動かさない（Stop の hook の `verify_on_stop.py` で動かす） |
 | `frontend/src/**/*.ts`, `*.tsx` | そのファイルを Prettier でフォーマットし、`vitest related` でそのファイルに関係するテストだけを動かす |
 | それ以外 | 何もしない |
+| （上の2つで）ほかの Maven のビルドが動いている | 何も動かさず、飛ばした理由を `additionalContext` で Claude に伝える（止めない）。下の「[ほかのビルドとぶつからないようにする](#ほかのビルドとぶつからないようにするother_buildspy)」 |
 
 フォーマットやテストが失敗したときは、`decision: "block"` と失敗の出力（末尾 4000 文字まで）を Claude に返します。
 PostToolUse の時点で編集は済んでいるので、編集が取り消されるわけではありません。Claude が出力を読んで直します。
@@ -162,6 +163,7 @@ Claude Code を **起動し直してから**（hook の設定は起動時に読�
 |------|----------|
 | hook 入力の `stop_hook_active` が `true` | 何もしない（この hook で一度止めたあとなので、同じ失敗で止まり続けないようにする） |
 | 前回 verify が成功したときから `src/` と `frontend/src/` の中身が変わっていない | 何もしない（verify は 1〜2 分かかるため） |
+| ほかの Maven のビルドが動いている | verify を動かさず、飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュは残さないので、次に応答を終えるときにもう一度確かめる。下の「[ほかのビルドとぶつからないようにする](#ほかのビルドとぶつからないようにするother_buildspy)」 |
 | それ以外 | verify を動かす。成功したら何も出さずに終わる。失敗したら `decision: "block"` と出力の末尾 4000 文字を Claude に返し、Claude は応答を終えずに直す |
 
 - 変わったかどうかは、`src/` と `frontend/src/` の全ファイルのパスと中身のハッシュで比べます。
@@ -203,3 +205,75 @@ Claude Code を **起動し直してから** 行います。`/hooks` で `Stop` 
    - 頼む：「`src/main/java` に、テストのない public メソッドを 30 行ほど持つクラスを 1 つ足して。テストは書かないで」
    - 確かめる：`jacoco` の `Coverage checks have not been met` で止まる。
 4. 後片付け：`git restore src frontend/src` と、足したファイルの削除。
+
+## ほかのビルドとぶつからないようにする（other_builds.py）
+
+`./mvnw verify` を 2 つ同時に動かすと、`target/` や `frontend/node_modules`・`frontend/coverage` を取り合って失敗します
+（`docs/ai-review-log.md` の #58・#63）。そのため `format_and_test.py` と `verify_on_stop.py` は、
+フォーマットやテストを動かす **前に**、このプロジェクトでほかの Maven のビルドが動いていないかを確かめます。
+
+### ほかのビルドとして数えるもの
+
+`/proc` のプロセスの一覧から、次のすべてに当てはまるものを数えます。
+
+- 作業ディレクトリが、このプロジェクトの中にある（別のリポジトリのビルドは数えない）
+- コマンドラインが Maven のもの：java の起動クラスが `org.codehaus.plexus.classworlds.launcher.Launcher`
+  （`./mvnw` → `mvn` → java と動いたあとの本体）か `org.apache.maven.wrapper.MavenWrapperMain`、
+  コマンドそのものが `mvnw`・`mvn`、または `sh`・`bash` で動かした `mvnw`・`mvn`
+  （`vim mvnw` のように、引数に `mvnw` があるだけのものは数えない）
+- hook 自身と、hook を動かした側のプロセス（祖先）ではない。hook が Maven のビルドの中から動いても、自分を動かしたビルドを「ほかのビルド」と見間違えない
+
+手で動かした `./mvnw verify`、lefthook の pre-push、もう一方の hook（PostToolUse の `spotless:apply`、Stop の verify）が、どれも対象になります。
+hook は確かめたあとに自分のコマンドを動かすので、hook 自身が動かしている verify を、確かめるときに数えることはありません。
+
+### 見つかったとき
+
+| hook | やること |
+|------|----------|
+| PostToolUse（`format_and_test.py`） | 何も動かさず、PID とコマンドと飛ばした理由を `additionalContext` で Claude に伝える。止めない（編集は済んでいるため） |
+| Stop（`verify_on_stop.py`） | verify を動かさず、PID とコマンドと飛ばした理由を `decision: "block"` で Claude に返す。確認済みのハッシュ（`target/verify-on-stop.last-ok`）は残さないので、次に応答を終えるときにもう一度確かめる |
+
+Stop は、止めないと Claude に理由を伝えられないため `block` にしています。Claude がもう一度応答を終えるときは
+`stop_hook_active` が `true` なので、続けて止まることはありません。
+前回成功したときからソースが変わっていなければ、ほかのビルドが動いていても、今までどおり何もしません。
+
+### 既知の限界
+
+- **確かめたあとに始まったビルド**とは、ぶつかることがあります（確かめてから自分のコマンドを動かすまでの間に、手でビルドを始めた場合など）。ロックではなく、動く前に一度確かめるだけの仕組みです。
+- `/proc` がない環境（macOS など）では、ほかのビルドを数えられないので、今までどおり動きます。開発環境は devcontainer（Linux）です。
+- 別のユーザーのプロセスなど、作業ディレクトリを読めないプロセスは数えません。
+
+### テスト
+
+上の「テスト」のコマンドでまとめて動きます（両方の hook のテストの `TestOtherBuild`）。本物の Maven は動かさず、
+`tests/fake_maven.py` で、sleep するだけのプロセスを Maven に見えるコマンドラインと作業ディレクトリで起動します。
+hook を動かした側のビルドは、hook を Maven に見えるプロセスの子として動かして確かめます。
+
+### わざとぶつけて確かめる手順
+
+Claude Code を **起動し直してから** 行います。手で動かすビルドは、Claude Code とは別のターミナルで動かします。
+
+1. **準備**
+   - ターミナル A で `python3 .claude/hooks/verify_on_stop.py <<< '{}'` を動かす。verify が成功し、`target/verify-on-stop.last-ok` ができる
+   - `cat target/verify-on-stop.last-ok` で、今のハッシュをメモしておく
+2. **ほかのビルドを動かす**
+   - ターミナル A で、もう一度 `./mvnw --batch-mode verify` を動かす（1〜2 分かかる。終わるまで次の 3・4 を行う）
+   - ターミナル B で、hook から見えているかを確かめる：
+     `python3 -c "import sys; sys.path.insert(0, '.claude/hooks'); import other_builds; print(other_builds.find_other_maven_builds('.'))"`
+     → `[(PID, 'mvn --batch-mode verify')]` のように 1 件出る
+3. **PostToolUse が飛ばすこと**
+   - 頼む：「`frontend/src/App.tsx` の末尾に `// 衝突の確認` という1行を足して。そこで応答を終えて」
+   - 確かめる：Claude が、ほかの Maven のビルドが動いているのでフォーマットとテストを飛ばした、と PID を挙げて伝える。
+     `vitest related` の失敗（ファイルが欠けている、など）は出ない
+4. **Stop が飛ばし、ハッシュを残さないこと**
+   - 3 で `frontend/src` が変わったので、応答を終えるときに Stop の hook が動く
+   - 確かめる：`Stop hook ... ほかの Maven のビルドが動いているので ... 今回は飛ばしました` と出て、Claude が作業を続けたあと、
+     2 回目は止まらずに応答を終える。verify の衝突による失敗（`frontend/coverage` の取り合いなど）は出ない。
+     `cat target/verify-on-stop.last-ok` が、1 でメモしたハッシュのまま（新しいハッシュが残っていない）
+5. **ほかのビルドが終わったら、もう一度確かめること（自分の verify は見間違えないこと）**
+   - ターミナル A の verify が終わってから、頼む：「`README.md` を読んで、1 行で要約して」
+   - 確かめる：応答を終えるときに Stop の hook が verify を動かし（1〜2 分かかる）、成功して終わる。
+     自分が動かした verify を理由に飛ばすことはない。`target/verify-on-stop.log` が新しくなり、`target/verify-on-stop.last-ok` が新しいハッシュに変わる
+6. **pre-push とぶつけるとき**
+   - 2 の代わりに、ターミナル A で、push してよいブランチで `git push` を動かす（lefthook の pre-push が `./mvnw --batch-mode verify` を動かす）。3〜5 は同じ
+7. 後片付け：`git restore frontend/src`
