@@ -252,10 +252,14 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 **Purpose**: 仕上げと、PR を出す前の確認（原則VI）。
 
-- [ ] T055 [P] 金額に `double`・`float`・`Math.pow` を使っていないことを確かめる：`grep -rnE '\b(double|float|Double|Float)\b|Math\.pow' src/main/java` が何も出さない。あわせて、`{main}/revolving/domain/RevolvingCalculator.java` を ADR 0005 と spec の FR-006〜FR-008・FR-012 に照らして読む（割り算は `divide(…, 0, RoundingMode.DOWN)` の1か所だけ）。自作スキル①があれば、それで確かめる（原則III）
-- [ ] T056 [P] フロントで金額を計算していないことを確かめる：`frontend/src/` で、API の結果の金額に `+`・`-`・`*`・`/` をしていない（表示だけ）
-- [ ] T057 `./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II）。結果（件数・カバレッジ）をこのタスクの下に記録する
+- [x] T055 [P] 金額に `double`・`float`・`Math.pow` を使っていないことを確かめる：`grep -rnE '\b(double|float|Double|Float)\b|Math\.pow' src/main/java` が何も出さない。あわせて、`{main}/revolving/domain/RevolvingCalculator.java` を ADR 0005 と spec の FR-006〜FR-008・FR-012 に照らして読む（割り算は `divide(…, 0, RoundingMode.DOWN)` の1か所だけ）。自作スキル①があれば、それで確かめる（原則III）
+  - 2026-11-24：自作スキル①（money-calc-review）で `src/main/java` 全体を確かめた。違反・要確認は0件。grep（`double`・`float`・`Math.pow`・`stripTrailingZeros`・`equals`）は何も出さなかった。`new BigDecimal` の引数は文字列だけ、`BigDecimal.valueOf` の引数は整数だけ。丸めは4か所で、リボ払いは `RevolvingCalculator.java` の `fee` の `divide(D, 0, RoundingMode.DOWN)` の1か所（FR-007 の各回の手数料）、残り3か所は分割払いの `InstallmentCalculator.java`（FR-006・FR-007）
+- [x] T056 [P] フロントで金額を計算していないことを確かめる：`frontend/src/` で、API の結果の金額に `+`・`-`・`*`・`/` をしていない（表示だけ）
+  - 2026-11-24：自作スキル①の確認6で、`frontend/src/` のテスト以外のファイルを全部読んだ。金額は `formatYen` で表示するだけで、計算していない。入力は文字列のまま API に送っている
+- [x] T057 `./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II）。結果（件数・カバレッジ）をこのタスクの下に記録する
+  - 2026-11-24：BUILD SUCCESS。バックエンド 732件・フロント 83件がすべて通過。行・分岐カバレッジは、バックエンドが 222/222・78/78、フロントが 79/79・37/37 で、両方とも100%。Spotless・Prettier も通過
 - [ ] T058 [quickstart.md](quickstart.md) の 1〜4 を上から順に行う（分割払いが変わっていないことの確認と、画面の #1〜#11 を含む）。SC-001・SC-005 は分割払いと同じく人が確かめる（開発者ツールの Network で `POST /api/revolving-simulations` が1秒未満、特に 10,000,000円・127,000円・15.0% の335行のとき。画面を開いてから結果まで30秒以内）
+  - 2026-11-24：Claude が 1〜3 を行った。1 は T057 の verify のとおり。2：jar は1つで、`static/index.html` も入っていた。`java -jar` で起動し、`/` は 200。3：100,000円・10,000円・15.0% は 200 で、11回・手数料 7,497円・支払総額 107,497円、返済表の11行は spec US2 の受け入れシナリオ6の表と一致した（API の応答は 0.24秒）。10,000,000円・126,000円・15.0% は 400・`application/problem+json`・`monthlyPayment` の1件（360回を超える）。複数の誤りは 400 で `errors` 3件、結果の項目なし。10,000,000円・127,000円・15.0% は 335回・335行（API の応答は 0.03秒）。分割払いの quickstart 3 も同じ結果（手数料 8,309円・支払総額 108,309円・初回 9,034円・2回目以降 9,025円、エラー3件）。4（画面の #1〜#11）と、SC-001・SC-005 のブラウザでの計測は、人が行う
 - [ ] T059 PR を出す前に、スキル②（pre-pr-check）を使い、結果の一覧を PR の説明文に貼る（CLAUDE.md）。AI の出力を人が確かめた結果は、人が `docs/ai-review-log.md` に記録する
   - 2026-11-24：人の指示。PR の説明文に「verify の失敗に備えた手順も追加」と書く（コミット `a7d49d6`。CLAUDE.md の「./mvnw verify でテスト用の JVM が止まったとき」と、`.gitignore` の `logs/`）
 - [ ] T060 main に入ったあと、EC2 の画面で quickstart.md 5 を確かめる（sprint-plan の Day6 のゴール）
