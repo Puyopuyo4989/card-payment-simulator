@@ -1,3 +1,4 @@
+import ScheduleTable from '../../shared/ScheduleTable'
 import { useSimulation } from '../../shared/useSimulation'
 import { simulate } from './api'
 import RevolvingForm from './RevolvingForm'
@@ -11,7 +12,10 @@ export default function RevolvingPage() {
     <>
       <RevolvingForm onSubmit={submit} submitting={submitting} />
       {outcome?.kind === 'success' && (
-        <RevolvingSummary result={outcome.result} />
+        <>
+          <RevolvingSummary result={outcome.result} />
+          <ScheduleTable schedule={outcome.result.schedule} />
+        </>
       )}
     </>
   )

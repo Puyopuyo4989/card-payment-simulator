@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { afterEach, expect, test, vi } from 'vitest'
 import { simulate } from './api'
@@ -21,6 +21,30 @@ const fifteenPercent: RevolvingSimulationResult = {
   totalFee: 7497,
   totalPayment: 107497,
   schedule: [],
+}
+
+// spec US2 の受け入れシナリオ6の表（100,000円・10,000円・15.0% の11行）
+const fifteenPercentWithSchedule: RevolvingSimulationResult = {
+  ...fifteenPercent,
+  schedule: [
+    [1, 10000, 1250, 8750, 91250],
+    [2, 10000, 1140, 8860, 82390],
+    [3, 10000, 1029, 8971, 73419],
+    [4, 10000, 917, 9083, 64336],
+    [5, 10000, 804, 9196, 55140],
+    [6, 10000, 689, 9311, 45829],
+    [7, 10000, 572, 9428, 36401],
+    [8, 10000, 455, 9545, 26856],
+    [9, 10000, 335, 9665, 17191],
+    [10, 10000, 214, 9786, 7405],
+    [11, 7497, 92, 7405, 0],
+  ].map(([number, payment, fee, principal, balanceAfter]) => ({
+    number,
+    payment,
+    principal,
+    fee,
+    balanceAfter,
+  })),
 }
 
 // spec US1 の2（100,000円・10,000円・0.0%）
@@ -64,6 +88,47 @@ test('入力して実行すると、APIの結果を表示する', async () => {
   expect(await screen.findByText('11回')).toBeInTheDocument()
   expect(screen.getByText('7,497円')).toBeInTheDocument()
   expect(screen.getByText('107,497円')).toBeInTheDocument()
+})
+
+function scheduleBodyRows() {
+  const [, body] = screen.getAllByRole('rowgroup')
+  return within(body).getAllByRole('row')
+}
+
+test('実行すると、要約の下に返済表を、APIが返した行の数だけ表示する', async () => {
+  vi.mocked(simulate).mockResolvedValue(success(fifteenPercentWithSchedule))
+  const user = userEvent.setup()
+  render(<RevolvingPage />)
+
+  await fillAndSubmit(user, '100000', '10000', '15.0')
+
+  const table = await screen.findByRole('table')
+  const summary = screen.getByText('完済までの支払回数', { selector: 'dt' })
+  expect(
+    summary.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy()
+  const rows = scheduleBodyRows()
+  expect(rows).toHaveLength(11)
+  expect(
+    within(rows[10])
+      .getAllByRole('cell')
+      .map((cell) => cell.textContent),
+  ).toEqual(['11', '7,497円', '92円', '7,405円', '0円'])
+})
+
+test('再実行すると、前回の返済表は残らない', async () => {
+  vi.mocked(simulate)
+    .mockResolvedValueOnce(success(fifteenPercentWithSchedule))
+    .mockResolvedValueOnce(success(noFee))
+  const user = userEvent.setup()
+  render(<RevolvingPage />)
+
+  await fillAndSubmit(user, '100000', '10000', '15.0')
+  await screen.findByRole('table')
+  await fillAndSubmit(user, '100000', '10000', '0.0')
+
+  await screen.findByText('10回')
+  expect(screen.queryAllByRole('row')).toHaveLength(1)
 })
 
 test('結果が出る前は、結果を表示しない', () => {

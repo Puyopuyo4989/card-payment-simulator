@@ -217,11 +217,11 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 2（先に書き、red を確かめる）
 
-- [ ] T049 [US2] 画面全体のテストを `frontend/src/features/revolving/RevolvingPage.test.tsx` に足す：実行すると、要約の下に返済表（共通の `ScheduleTable`）が表示され、行数が `schedule` の要素数と同じ（API の差し替えで返す11行）。再実行で前回の返済表が残らない（FR-014、US2-1）
+- [x] T049 [US2] 画面全体のテストを `frontend/src/features/revolving/RevolvingPage.test.tsx` に足す：実行すると、要約の下に返済表（共通の `ScheduleTable`）が表示され、行数が `schedule` の要素数と同じ（API の差し替えで返す11行）。再実行で前回の返済表が残らない（FR-014、US2-1）
 
 ### Implementation for User Story 2
 
-- [ ] T050 [US2] `frontend/src/features/revolving/RevolvingPage.tsx` で、要約の下に `frontend/src/shared/ScheduleTable.tsx` を表示する。T049 が green になる
+- [x] T050 [US2] `frontend/src/features/revolving/RevolvingPage.tsx` で、要約の下に `frontend/src/shared/ScheduleTable.tsx` を表示する。T049 が green になる
 
 **Checkpoint**: 画面で US1 と US2 が動く。
 
