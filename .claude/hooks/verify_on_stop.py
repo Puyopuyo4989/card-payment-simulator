@@ -8,7 +8,8 @@
 
 ほかの Maven のビルド（手で動かした verify、pre-push など）が動いているとき:
   verify を動かさず、その理由を decision=block で Claude に返す（other_builds.py）。
-  確認済みのハッシュは残さないので、次に応答を終えるときにもう一度確かめる。
+  確認済みのハッシュは残さないので、次にユーザーの依頼を受けて応答を終えるときに確かめる
+  （block の直後に応答を終えるときは stop_hook_active なので確かめない）。
 
 テスト: python3 -m unittest discover -s .claude/hooks/tests -v
 
@@ -110,7 +111,7 @@ def main() -> None:
     if state_file.is_file() and state_file.read_text().strip() == current:
         sys.exit(0)
 
-    # 確認済みのハッシュは残さないので、次に応答を終えるときにもう一度確かめる
+    # 確認済みのハッシュは残さないので、次にユーザーの依頼を受けて応答を終えるときに確かめる
     builds = other_builds.find_other_maven_builds(project_dir)
     if builds:
         block(
