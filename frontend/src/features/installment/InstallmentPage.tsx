@@ -1,34 +1,17 @@
-import { useState } from 'react'
+import ScheduleTable from '../../shared/ScheduleTable'
+import { useSimulation } from '../../shared/useSimulation'
 import { simulate } from './api'
 import InstallmentForm from './InstallmentForm'
 import InstallmentSummary from './InstallmentSummary'
-import ScheduleTable from './ScheduleTable'
-import type { InstallmentSimulationRequest, SimulationOutcome } from './types'
 
-/** 入力 → 結果かエラーの表示。新しい結果かエラーのどちらかだけを表示する */
+/** 入力 → 結果かエラーの表示。新しい結果かエラーのどちらかだけを表示する（実行中の扱いはリボ払いと共通の useSimulation） */
 export default function InstallmentPage() {
-  const [outcome, setOutcome] = useState<SimulationOutcome | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit(request: InstallmentSimulationRequest) {
-    // 前回の結果やエラーが新しいものと混ざって見えないよう、APIを呼ぶ前に消す（spec のエッジケース）
-    setOutcome(null)
-    // 応答が来るまで次の実行をさせず、古い応答で新しい結果が上書きされないようにする
-    setSubmitting(true)
-    try {
-      setOutcome(await simulate(request))
-    } catch {
-      // simulate は例外を投げない作りだが、もし投げても押せないままにせず、予期しないエラーとして伝える
-      setOutcome({ kind: 'unexpectedError' })
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  const { outcome, submitting, submit } = useSimulation(simulate)
 
   return (
     <>
       <InstallmentForm
-        onSubmit={handleSubmit}
+        onSubmit={submit}
         submitting={submitting}
         errors={outcome?.kind === 'inputError' ? outcome.errors : []}
       />

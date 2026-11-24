@@ -3,3 +3,9 @@
   margin: 0.25rem 0 0;
   color: #b42318;
 }
+
+/* 選んでいるタブ（色だけに頼らず、太字と下線でも区別する） */
+.tab-selected {
+  font-weight: bold;
+  border-bottom: 3px solid currentColor;
+}

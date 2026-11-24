@@ -1,6 +1,5 @@
 package com.example.cardpayment.common.web;
 
-import com.example.cardpayment.installment.web.InstallmentInputException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -12,8 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    @ExceptionHandler(InstallmentInputException.class)
-    public ProblemDetail handleInputError(InstallmentInputException exception) {
+    @ExceptionHandler(InputValidationException.class)
+    public ProblemDetail handleInputError(InputValidationException exception) {
         var problem = badRequest("入力に誤りがあります");
         problem.setProperty("errors", exception.errors());
         return problem;

@@ -198,7 +198,9 @@ T057 のスキル②のレビュー（1回目〜3回目）の Minor のうち、
 ### あと回しにすること（2026-11-20、スキル②のレビューの Minor から）
 
 - 共通の入力エラーの例外を `{main}/common/` に移すのは、Day6（リボ払い）で行う。今は `{main}/common/web/ApiExceptionHandler.java` が `{main}/installment/web/InstallmentInputException.java` を直接使っている。2つ目の機能で同じ形の入力エラーが要るときに移す
+  - 2026-11-24：対応した。`{main}/common/web/InputValidationException.java` に移した（`specs/002-revolving-simulation/tasks.md` の T002）。あわせて、入力の解釈の一部を `{main}/common/web/InputRules.java` に移した（T004）
 - `ScheduleRow`（`{main}/installment/domain/ScheduleRow.java`）を API のレスポンス（`InstallmentSimulationResponse`）にそのまま使っているのは、既知の課題。ドメインの項目名を変えると、API の契約も変わる。直すときは、web 層に返済表の行の型を置く
+  - 2026-11-24：対応した。`ScheduleRow` を `{main}/common/domain/` に移し、API には `{main}/common/web/ScheduleRowResponse.java` で返す（002 の T005・T006）。JSON の形は変わらない
 
 ---
 

@@ -1,5 +1,6 @@
 package com.example.cardpayment.installment.domain;
 
+import com.example.cardpayment.common.domain.ScheduleRow;
 import java.math.BigDecimal;
 import java.util.List;
 

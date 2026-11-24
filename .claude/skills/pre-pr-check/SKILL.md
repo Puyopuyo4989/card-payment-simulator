@@ -1,6 +1,6 @@
 ---
 name: pre-pr-check
-description: "PR を出す前の確認（自作スキル②）。ブランチと未コミットの変更、./mvnw verify、金額に double・float を使っていないこと、/speckit-analyze、コードレビューと完了前の確認を順に行い、結果を一覧で報告する。PR の作成と push はしない。PR を出す前、または「PR 前の確認」を頼まれたときに使う。"
+description: "PR を出す前の確認（自作スキル②）。ブランチと未コミットの変更、./mvnw verify、金額に double・float を使っていないこと（金額の計算に関わるファイルが変わっていたらスキル①も使う）、/speckit-analyze、コードレビューと完了前の確認を順に行い、結果を一覧で報告する。PR の作成と push はしない。PR を出す前、または「PR 前の確認」を頼まれたときに使う。"
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -51,6 +51,17 @@ grep -rnE '\b(double|float|Double|Float)\b|Math\.pow' src/main/java
 - 何も出さなければ通過（constitution 原則III、[ADR 0005](../../../docs/adr/0005-金額計算と端数処理.md)）。
 - 出したときは、該当する行をすべて報告に載せる。金額でない使い方に見えても、通過とは書かず、人の判断を仰ぐ。
 
+### 金額の計算に関わるファイルが変わっていたら、スキル①も使う
+
+```bash
+git diff --name-only main...HEAD -- src/main/java frontend/src
+git status --porcelain -- src/main/java frontend/src
+```
+
+- どちらかが、テスト（`*Test.java`・`*.test.ts(x)`・`setupTests.ts`）以外のファイルを1つでも出したら、自作スキル①（**money-calc-review**）を使う。
+- スキル①の「確認ごとの結果」の表と「見つけたもの」の一覧を、そのまま報告に載せる。スキル①の「違反」が0件なら通過、「要確認」があれば要確認、「違反」があれば失敗。
+- 該当するファイルがなければ、スキル①は使わず、報告に「金額の計算に関わるファイルの変更なし」と書く。
+
 ## 4. `/speckit-analyze`
 
 1. `.specify/feature.json` の `feature_directory` を読み、対象の機能を確かめる。
@@ -73,6 +84,7 @@ grep -rnE '\b(double|float|Double|Float)\b|Math\.pow' src/main/java
 | 1 | ブランチ・未コミットの変更 | | ブランチ名、未コミットの変更の有無 |
 | 2 | `./mvnw verify` | | テストの件数、カバレッジ、フォーマット |
 | 3 | `double`・`float` の grep | | 出た行の数 |
+| 3a | 金額計算のレビュー（スキル①） | | 使ったかどうか、違反・要確認の件数 |
 | 4 | `/speckit-analyze` | | 重要度ごとの件数 |
 | 5 | コードレビュー・完了前の確認 | | 指摘の件数 |
 

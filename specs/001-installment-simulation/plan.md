@@ -85,20 +85,24 @@ src/
 ├── main/
 │   ├── java/com/example/cardpayment/
 │   │   ├── CardPaymentSimulatorApplication.java
-│   │   ├── common/
-│   │   │   └── web/                     # 入力エラーを Problem Details に変える共通の処理
+│   │   ├── common/                      # リボ払いと共通（2026-11-24、002 の T002〜T006 で移した）
+│   │   │   ├── domain/
+│   │   │   │   └── ScheduleRow.java     # 返済表の1行
+│   │   │   └── web/
+│   │   │       ├── ApiExceptionHandler.java         # 入力エラーを Problem Details に変える
+│   │   │       ├── InputValidationException.java    # 項目ごとのエラーの一覧を持つ例外
+│   │   │       ├── InputRules.java                  # 空白の除去・形式・長さの上限・実質年率のチェック
+│   │   │       └── ScheduleRowResponse.java         # API で返す返済表の1行
 │   │   └── installment/
 │   │       ├── domain/                  # 計算（Spring に依存しない）
 │   │       │   ├── InstallmentCalculator.java
 │   │       │   ├── InstallmentCondition.java
-│   │       │   ├── InstallmentResult.java
-│   │       │   └── ScheduleRow.java
+│   │       │   └── InstallmentResult.java
 │   │       └── web/                     # API
 │   │           ├── InstallmentSimulationController.java
 │   │           ├── InstallmentSimulationRequest.java    # 文字列で受ける
 │   │           ├── InstallmentSimulationResponse.java
-│   │           ├── InstallmentInputValidator.java       # 文字列 → InstallmentCondition、項目ごとのエラー
-│   │           └── InstallmentInputException.java       # 項目ごとのエラーの一覧を持つ例外
+│   │           └── InstallmentInputValidator.java       # 文字列 → InstallmentCondition、項目ごとのエラー
 │   └── resources/
 │       └── application.properties
 └── test/java/com/example/cardpayment/

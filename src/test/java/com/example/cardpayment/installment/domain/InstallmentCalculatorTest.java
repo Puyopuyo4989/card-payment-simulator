@@ -2,6 +2,7 @@ package com.example.cardpayment.installment.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.cardpayment.common.domain.ScheduleRow;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

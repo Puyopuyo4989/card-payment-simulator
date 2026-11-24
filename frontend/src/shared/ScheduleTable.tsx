@@ -1,11 +1,11 @@
-import { formatYen } from '../../shared/formatYen'
+import { formatYen } from './formatYen'
 import type { ScheduleRow } from './types'
 
 type Props = {
   schedule: ScheduleRow[]
 }
 
-/** 返済表（FR-013）。1回目から最終回まで、APIが返した順に表示する */
+/** 返済表（分割払いの FR-013、リボ払いの FR-014）。1回目から最終回まで、APIが返した順に表示する */
 export default function ScheduleTable({ schedule }: Props) {
   return (
     <table>

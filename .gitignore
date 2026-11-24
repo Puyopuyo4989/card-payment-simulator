@@ -4,6 +4,8 @@ memo-*.md
 MEMO-*.md
 *-questions.md
 target/
+# 失敗したときの証拠（CLAUDE.md の「./mvnw verify でテスト用の JVM が止まったとき」）
+logs/
 # 秘密情報（constitution 原則VII）。項目の一覧は .env.example
 .env
 frontend/node_modules/

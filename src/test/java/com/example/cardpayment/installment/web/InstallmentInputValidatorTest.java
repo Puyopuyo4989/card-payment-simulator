@@ -3,8 +3,9 @@ package com.example.cardpayment.installment.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import com.example.cardpayment.common.web.InputValidationException;
+import com.example.cardpayment.common.web.InputValidationException.FieldError;
 import com.example.cardpayment.installment.domain.InstallmentCondition;
-import com.example.cardpayment.installment.web.InstallmentInputException.FieldError;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -205,7 +206,7 @@ class InstallmentInputValidatorTest {
     private List<FieldError> errorsOf(String amount, String paymentCount, String annualRate) {
         var exception =
                 catchThrowableOfType(
-                        InstallmentInputException.class,
+                        InputValidationException.class,
                         () ->
                                 validator.validate(
                                         new InstallmentSimulationRequest(

@@ -1,6 +1,6 @@
 # 機能仕様：リボ払い（定額方式）の支払シミュレーション
 
-**Feature Branch**: `docs/revolving-spec`
+**Feature Branch**: `002-revolving-simulation`
 
 **Created**: 2026-11-17
 

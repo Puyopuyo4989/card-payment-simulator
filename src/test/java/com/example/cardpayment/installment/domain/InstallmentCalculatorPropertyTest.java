@@ -2,6 +2,7 @@ package com.example.cardpayment.installment.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.cardpayment.common.domain.ScheduleRow;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Stream;
