@@ -1,11 +1,13 @@
 package com.example.cardpayment.revolving.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.example.cardpayment.common.domain.ScheduleRow;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -142,6 +144,48 @@ class RevolvingCalculatorTest {
         assertThat(result.totalPayment()).isEqualByComparingTo("4313823");
         assertThat(result.schedule()).hasSize(360);
         assertThat(result.schedule().getLast().balanceAfter()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void 毎月の支払額が1回目の手数料以下なら払い終わらない() {
+        // spec US3 の4（1回目の手数料が125,000円で、支払額と同じ）
+        var exception =
+                catchThrowableOfType(
+                        RevolvingNotPayableException.class,
+                        () -> calculator.calculate(condition("10000000", "125000", "15.0")));
+
+        assertThat(exception).isNotNull();
+        assertThat(exception.reason())
+                .isEqualTo(RevolvingNotPayableException.Reason.FEE_NOT_COVERED);
+    }
+
+    @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void 完済までの回数が360回を超えるなら払い終わらない() {
+        // spec US3 の5（390回かかる）
+        var exception =
+                catchThrowableOfType(
+                        RevolvingNotPayableException.class,
+                        () -> calculator.calculate(condition("10000000", "126000", "15.0")));
+
+        assertThat(exception).isNotNull();
+        assertThat(exception.reason())
+                .isEqualTo(RevolvingNotPayableException.Reason.TOO_MANY_PAYMENTS);
+    }
+
+    @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void 完済までの回数が360回をわずかに超えても払い終わらない() {
+        // 360回ちょうどの隣の条件。368回かかる（人が別途確かめた値。tasks.md T001）
+        var exception =
+                catchThrowableOfType(
+                        RevolvingNotPayableException.class,
+                        () -> calculator.calculate(condition("950000", "12000", "15.0")));
+
+        assertThat(exception).isNotNull();
+        assertThat(exception.reason())
+                .isEqualTo(RevolvingNotPayableException.Reason.TOO_MANY_PAYMENTS);
     }
 
     /** spec の返済表の列の順（回・支払額・手数料・元金・支払後の残高）で1行を作る。金額は小数なし。 */

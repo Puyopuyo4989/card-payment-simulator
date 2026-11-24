@@ -130,24 +130,31 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 3（先に書き、red を確かめる）
 
-- [ ] T022 [P] [US3] 払い終わらないときのテストを `{test}/revolving/domain/RevolvingCalculatorTest.java` に足す：(1) 10,000,000円・125,000円・15.0%（1回目の手数料が125,000円で支払額と同じ。US3-4）→ `RevolvingNotPayableException`・理由 `FEE_NOT_COVERED`、(2) 10,000,000円・126,000円・15.0%（390回。US3-5）→ 理由 `TOO_MANY_PAYMENTS`、(3) 10,000,000円・127,000円・15.0% → 例外にならず335回（US3-6）
-- [ ] T023 [US3] T022 がコンパイルで失敗すること（red）を確かめてから、`{main}/revolving/domain/RevolvingNotPayableException.java` を作る（`RuntimeException`。`enum Reason { FEE_NOT_COVERED, TOO_MANY_PAYMENTS }` と `reason()` を持つ。Spring に依存しない。メッセージの文言は持たない。data-model.md 5）
-- [ ] T024 [P] [US3] 入力チェックのテストを `{test}/revolving/web/RevolvingInputValidatorTest.java` に足す。項目ごとに data-model.md 1 の表の左から順に確かめ、最初に当てはまった1つのエラーを返し、誤っている項目はすべて返す。メッセージは contracts の一覧の文言どおり。境界値と例：
+- [x] T022 [P] [US3] 払い終わらないときのテストを `{test}/revolving/domain/RevolvingCalculatorTest.java` に足す：(1) 10,000,000円・125,000円・15.0%（1回目の手数料が125,000円で支払額と同じ。US3-4）→ `RevolvingNotPayableException`・理由 `FEE_NOT_COVERED`、(2) 10,000,000円・126,000円・15.0%（390回。US3-5）→ 理由 `TOO_MANY_PAYMENTS`、(3) 10,000,000円・127,000円・15.0% → 例外にならず335回（US3-6）
+- [x] T023 [US3] T022 がコンパイルで失敗すること（red）を確かめてから、`{main}/revolving/domain/RevolvingNotPayableException.java` を作る（`RuntimeException`。`enum Reason { FEE_NOT_COVERED, TOO_MANY_PAYMENTS }` と `reason()` を持つ。Spring に依存しない。メッセージの文言は持たない。data-model.md 5）
+- [x] T024 [P] [US3] 入力チェックのテストを `{test}/revolving/web/RevolvingInputValidatorTest.java` に足す。項目ごとに data-model.md 1 の表の左から順に確かめ、最初に当てはまった1つのエラーを返し、誤っている項目はすべて返す。メッセージは contracts の一覧の文言どおり。境界値と例：
   - 利用残高：未指定（null）・`""`・`"  "` → 「利用残高を入力してください」。`"1000.5"`・`"-1000"`・`"100,000"`・`"１０００"`・`"abc"` → 「利用残高は半角数字（整数）で入力してください」。`"999"`・`"10000001"`・`"1"` ＋ 0を20個 → 「利用残高は1,000円以上10,000,000円以下で入力してください」。`"1000"`・`"10000000"` → エラーなし（FR-002、US3-2）
   - 毎月の支払額：未指定・`""` → 「毎月の支払額を入力してください」。`"1000.5"`・`"-1000"`・`"abc"` → 「毎月の支払額は半角数字（整数）で入力してください」。`"999"`・`"1500"`（US3-3）・`"10000001"`・`"10001000"`・`"1"` ＋ 0を20個 → 「毎月の支払額は1,000円以上10,000,000円以下の、1,000円単位の額で入力してください」。利用残高 10,000円で `"11000"` → 「毎月の支払額は利用残高以下で入力してください」、`"10000"` → エラーなし（FR-004、エッジケース）。`"1000"` → エラーなし
   - 実質年率：分割払いと同じ例とメッセージ（T003 と同じ）。`"12.25"` → 形式のエラー（エッジケース）
   - 項目の関係：利用残高が誤り（`""`）で毎月の支払額 `"20000000"` → 毎月の支払額は範囲のエラーだけ（「利用残高以下」を出さない）。利用残高が誤り（`"999"`）で毎月の支払額 `"5000"` → 毎月の支払額のエラーなし（research.md R4）
   - 3項目とも誤り → 3件。並びは `balance` → `monthlyPayment` → `annualRate`（US3-7）
-- [ ] T025 [P] [US3] 払い終わらない理由をメッセージに変えるテストを `{test}/revolving/web/RevolvingInputValidatorTest.java` に足す：`FEE_NOT_COVERED` → `InputValidationException` の `errors` が1件で `monthlyPayment`・「毎月の支払額が1回目の手数料以下のため、残高が減りません。毎月の支払額を増やしてください」、`TOO_MANY_PAYMENTS` → `monthlyPayment`・「完済までの回数が360回を超えます。毎月の支払額を増やしてください」
-- [ ] T026 [P] [US3] API のテストを `{test}/revolving/web/RevolvingSimulationControllerTest.java` に足す：(1) `{"balance":"","monthlyPayment":"1500","annualRate":"12.25"}` → 400・`Content-Type: application/problem+json`・`type` `about:blank`・`title` 「入力に誤りがあります」・`status` 400・`instance` `/api/revolving-simulations`・`errors` が3件。結果の項目（`paymentCount`・`totalFee` など）を含まない（SC-004）。(2) 10,000,000円・125,000円・15.0% → 400・`errors` が `monthlyPayment` の1件で「1回目の手数料以下」のメッセージ（US3-4）。(3) 10,000,000円・126,000円・15.0% → 400・「360回を超えます」のメッセージ（US3-5）。(4) 10,000,000円・127,000円・15.0% → 200・`paymentCount` 335（US3-6）。(5) 本文が JSON として読めないとき → 400・`title` 「リクエストの形式が正しくありません」・`errors` を含まない。(6) 項目が JSON の数値のとき（`{"balance":100000,"monthlyPayment":10000,"annualRate":"15.0"}`）→ 文字列のときと同じ 200 の結果
-- [ ] T027 [US3] 360回の境界のテストを `{test}/revolving/web/RevolvingSimulationControllerTest.java` に足す：949,000円・12,000円・15.0% → 200・`paymentCount` 360、950,000円・12,000円・15.0% → 400・「360回を超えます」（contracts「この契約で確かめるテスト」）。**T001 の記録があるまで書かない**
+- [x] T025 [P] [US3] 払い終わらない理由をメッセージに変えるテストを `{test}/revolving/web/RevolvingInputValidatorTest.java` に足す：`FEE_NOT_COVERED` → `InputValidationException` の `errors` が1件で `monthlyPayment`・「毎月の支払額が1回目の手数料以下のため、残高が減りません。毎月の支払額を増やしてください」、`TOO_MANY_PAYMENTS` → `monthlyPayment`・「完済までの回数が360回を超えます。毎月の支払額を増やしてください」
+- [x] T026 [P] [US3] API のテストを `{test}/revolving/web/RevolvingSimulationControllerTest.java` に足す：(1) `{"balance":"","monthlyPayment":"1500","annualRate":"12.25"}` → 400・`Content-Type: application/problem+json`・`type` `about:blank`・`title` 「入力に誤りがあります」・`status` 400・`instance` `/api/revolving-simulations`・`errors` が3件。結果の項目（`paymentCount`・`totalFee` など）を含まない（SC-004）。(2) 10,000,000円・125,000円・15.0% → 400・`errors` が `monthlyPayment` の1件で「1回目の手数料以下」のメッセージ（US3-4）。(3) 10,000,000円・126,000円・15.0% → 400・「360回を超えます」のメッセージ（US3-5）。(4) 10,000,000円・127,000円・15.0% → 200・`paymentCount` 335（US3-6）。(5) 本文が JSON として読めないとき → 400・`title` 「リクエストの形式が正しくありません」・`errors` を含まない。(6) 項目が JSON の数値のとき（`{"balance":100000,"monthlyPayment":10000,"annualRate":"15.0"}`）→ 文字列のときと同じ 200 の結果
+- [x] T027 [US3] 360回の境界のテストを `{test}/revolving/web/RevolvingSimulationControllerTest.java` に足す：949,000円・12,000円・15.0% → 200・`paymentCount` 360、950,000円・12,000円・15.0% → 400・「360回を超えます」（contracts「この契約で確かめるテスト」）。**T001 の記録があるまで書かない**
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] `{main}/revolving/web/RevolvingInputValidator.java` に入力チェックを足す（data-model.md 1）。利用残高は「必須 → 形式（`InputRules.isInteger`）→ 範囲（1,000以上10,000,000以下、20文字超も範囲の誤り。BigDecimal に変える前に `InputRules.isTooLong` で確かめる）」。毎月の支払額は「必須 → 形式 → 範囲と単位（1,000以上・10,000,000以下・1,000で割り切れる・20文字以内）→ 利用残高以下（利用残高が誤っていないときだけ）」。実質年率は `InputRules.checkAnnualRate`。誤りがあれば `InputValidationException` を投げる。T024 が green になる
-- [ ] T029 [US3] `{main}/revolving/web/RevolvingInputValidator.java` に、`RevolvingNotPayableException` を `monthlyPayment` の `InputValidationException` に変えるメソッドを足す（文言は contracts の一覧どおり）。T025 が green になる
-- [ ] T030 [US3] `{main}/revolving/domain/RevolvingCalculator.java` に、払い終わらないときの扱いを足す（data-model.md 4 の 2・3-4）：計算の最初に「1回目の手数料 ≧ 毎月の支払額」なら `FEE_NOT_COVERED`、360行を足しても最終回でなければ `TOO_MANY_PAYMENTS` を投げる（361回目は計算しない）。T022 が green になる
-- [ ] T031 [US3] `{main}/revolving/web/RevolvingSimulationController.java` で、計算が投げた `RevolvingNotPayableException` を T029 のメソッドで入力エラーに変えて投げる（plan.md「入力チェック」の 1〜3）。`ApiExceptionHandler` は `InputValidationException` を扱うので、変えなくてよい。T026（と T001 のあとは T027）が green になる
+- [x] T028 [US3] `{main}/revolving/web/RevolvingInputValidator.java` に入力チェックを足す（data-model.md 1）。利用残高は「必須 → 形式（`InputRules.isInteger`）→ 範囲（1,000以上10,000,000以下、20文字超も範囲の誤り。BigDecimal に変える前に `InputRules.isTooLong` で確かめる）」。毎月の支払額は「必須 → 形式 → 範囲と単位（1,000以上・10,000,000以下・1,000で割り切れる・20文字以内）→ 利用残高以下（利用残高が誤っていないときだけ）」。実質年率は `InputRules.checkAnnualRate`。誤りがあれば `InputValidationException` を投げる。T024 が green になる
+- [x] T029 [US3] `{main}/revolving/web/RevolvingInputValidator.java` に、`RevolvingNotPayableException` を `monthlyPayment` の `InputValidationException` に変えるメソッドを足す（文言は contracts の一覧どおり）。T025 が green になる
+- [x] T030 [US3] `{main}/revolving/domain/RevolvingCalculator.java` に、払い終わらないときの扱いを足す（data-model.md 4 の 2・3-4）：計算の最初に「1回目の手数料 ≧ 毎月の支払額」なら `FEE_NOT_COVERED`、360行を足しても最終回でなければ `TOO_MANY_PAYMENTS` を投げる（361回目は計算しない）。T022 が green になる
+- [x] T031 [US3] `{main}/revolving/web/RevolvingSimulationController.java` で、計算が投げた `RevolvingNotPayableException` を T029 のメソッドで入力エラーに変えて投げる（plan.md「入力チェック」の 1〜3）。`ApiExceptionHandler` は `InputValidationException` を扱うので、変えなくてよい。T026（と T001 のあとは T027）が green になる
+  - 2026-11-24：進め方の記録。
+    - T022 の red：360回を超える2件は「例外が出ない」で失敗した。1回目の手数料以下の1件は、計算が終わらず返済表の行を足し続けたため、テストを動かす JVM ごと止められた（終了コード143）。テストには、別スレッドの5秒の時間制限を付けている
+    - T024 の red：T029 のメソッドだけを先に作ってコンパイルを通し、入力チェックのテストが失敗することを確かめてから T028 を作った
+    - T026・T027 の red：払い終わらない3件が、ドメインの例外がそのまま出て失敗することを確かめてから T031 を作った
+    - T019（360回ちょうど）と T022（368回）が、T030 の止める処理のあとも通ることを確かめた
+
+- 2026-11-24（まとまり A のあと、`./mvnw clean verify`）：BUILD SUCCESS。バックエンド 732件・フロント 44件がすべて通過。行・分岐カバレッジは、バックエンドが 207/207・78/78、フロントが 51/51・25/25 で、両方とも100%
 
 **Checkpoint**: まとまり A が終わる。3つのストーリーが API で動き、contracts の 200・400 の形と一致する。quickstart.md 3 の curl がそのまま通る。分割払いのテストも通る。
 
