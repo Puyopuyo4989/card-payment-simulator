@@ -15,7 +15,8 @@
 入力: stdin に Stop の hook 入力 JSON
 出力: verify が失敗したときは decision=block と失敗の内容を含む JSON を stdout に出して exit 0
       （Claude は応答を終えずに、内容を読んで直す）。全部の出力は target/verify-on-stop.log に残す。
-      成功したとき・動かさないときは何も出力せず exit 0。
+      ほかの Maven のビルドが動いていて飛ばしたときも、decision=block と飛ばした理由を出して exit 0。
+      成功したとき・動かさないとき（stop_hook_active、変更なし）は何も出力せず exit 0。
 """
 import hashlib
 import json
@@ -116,7 +117,8 @@ def main() -> None:
             f"ほかの Maven のビルドが動いているので、応答を終える前の {' '.join(VERIFY_COMMAND)} を今回は飛ばしました: "
             f"{other_builds.summary(builds)}。\n"
             f"同時に動かすと target/ や frontend/node_modules を取り合って失敗するためです。"
-            f"確認済みの記録は残していないので、次に応答を終えるときにもう一度確かめます。"
+            f"この応答では verify していません。確認済みの記録は残していないので、"
+            f"次にユーザーの依頼を受けて応答を終えるときに確かめます。"
             f"ほかのビルドが終わるまで、新しく ./mvnw を動かさないでください。"
         )
 

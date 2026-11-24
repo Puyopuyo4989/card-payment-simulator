@@ -18,6 +18,8 @@
 入力: stdin に PostToolUse の hook 入力 JSON
 出力: フォーマットかテストが失敗したときは decision=block と失敗の内容を含む JSON を
       stdout に出して exit 0（内容は Claude に返され、Claude が直せる）。
+      ほかの Maven のビルドが動いていて飛ばしたときは、hookSpecificOutput.additionalContext に
+      飛ばした理由を入れた JSON を stdout に出して exit 0（止めずに Claude に伝える）。
       成功したとき・対象外のときは何も出力せず exit 0。
 """
 import json
@@ -131,7 +133,8 @@ def main() -> None:
             f"ほかの Maven のビルドが動いているので、{file_path} の変更後のフォーマットとテストを今回は飛ばしました: "
             f"{other_builds.summary(builds)}。\n"
             f"同時に動かすと、node_modules や target/ が入れ替わる途中のものを読んで失敗するためです。"
-            f"フォーマットとテストは、ビルドが終わったあとに、Stop の hook の ./mvnw verify で確かめます。"
+            f"Spotless・Prettier では直していません。Stop の hook の ./mvnw verify はフォーマットを確かめるだけなので、"
+            f"そこで落ちたら直してください。応答を終えるときにまだビルドが動いていれば、Stop の hook も飛ばします。"
         )
 
     abs_path = str(Path(file_path).resolve())

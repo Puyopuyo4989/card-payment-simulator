@@ -35,6 +35,11 @@ def start_java_build(testcase, cwd):
     return _start(testcase, [sys.executable, "-c", SLEEP, MAVEN_LAUNCHER, "--batch-mode", "verify"], cwd)
 
 
+def start_java_run(testcase, cwd):
+    """./mvnw spring-boot:run（開発中に動かし続けるアプリ）に見えるプロセスを起動する。"""
+    return _start(testcase, [sys.executable, "-c", SLEEP, MAVEN_LAUNCHER, "spring-boot:run"], cwd)
+
+
 def start_mvnw_build(testcase, cwd):
     """sh で動いている ./mvnw に見えるプロセスを起動する（java を起動する前の段階）。"""
     script = Path(cwd) / "other-build" / "mvnw"

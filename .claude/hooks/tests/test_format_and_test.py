@@ -209,6 +209,18 @@ class TestOtherBuild(HookTestCase):
         self.assertSkippedWith(proc, "ほかの Maven のビルド", str(other.pid), "App.tsx")
         self.assertEqual(self.calls(), [])
 
+    def test_飛ばしたときは_フォーマットを直していないことと_Stop_も飛ばしうることを伝える(self):
+        fake_maven.start_java_build(self, self.project)
+        proc = self.run_hook(self.path("frontend/src/App.tsx"))
+        # verify はフォーマットを確かめるだけで直さない。Stop の時点でまだビルドが動いていれば Stop も飛ばす
+        self.assertSkippedWith(proc, "Spotless・Prettier では直していません", "Stop の hook も飛ばします")
+
+    def test_動かし続けている_spring_boot_run_は数えない(self):
+        fake_maven.start_java_run(self, self.project)
+        proc = self.run_hook(self.path("frontend/src/App.tsx"))
+        self.assertSilent(proc)
+        self.assertEqual(len(self.calls()), 2)
+
     def test_java_の変更で_ほかのビルドが動いていたら何も動かさず理由を伝える(self):
         other = fake_maven.start_mvnw_build(self, self.project)
         proc = self.run_hook(self.path("src/main/java/com/example/Foo.java"))

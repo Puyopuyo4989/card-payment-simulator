@@ -9,6 +9,7 @@
   - コマンドラインが Maven のもの：java の起動クラスが Maven のもの、
     mvnw・mvn そのもの、または sh・bash で動かした mvnw・mvn
   - hook 自身と、hook を動かした側のプロセス（祖先）ではない
+  - 開発中に動かし続けるゴール（spring-boot:run）ではない
 """
 import os
 from pathlib import Path
@@ -23,12 +24,16 @@ MAVEN_MAIN_CLASSES = (
 MAVEN_COMMANDS = ("mvnw", "mvn")
 SHELLS = ("sh", "bash", "dash", "zsh")
 
+# 開発中に動かし続けるゴール。起動が終われば verify とはほとんどぶつからないので数えない
+# （数えると、動かしている間ずっと hook が確認を飛ばし続ける）
+LONG_RUNNING_GOALS = ("spring-boot:run",)
+
 # Claude に伝えるコマンドラインの上限（java のコマンドラインは長いので）
 MAX_COMMAND_CHARS = 200
 
 
 def is_maven(argv: list) -> bool:
-    if not argv:
+    if not argv or any(arg in LONG_RUNNING_GOALS for arg in argv):
         return False
     if any(arg in MAVEN_MAIN_CLASSES for arg in argv):
         return True

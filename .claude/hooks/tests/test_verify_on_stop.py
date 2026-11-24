@@ -202,7 +202,9 @@ class TestOtherBuild(HookTestCase):
     def test_飛ばしたときは確認済みのハッシュを残さず次にもう一度確かめる(self):
         other = fake_maven.start_java_build(self, self.project)
         reason = self.assert_blocked(self.run_hook())
-        self.assertIn("次に応答を終えるとき", reason)
+        # block の直後に応答を終えるときは stop_hook_active で確かめないので、確かめ直すのは次の依頼のあと
+        self.assertIn("この応答では verify していません", reason)
+        self.assertIn("次にユーザーの依頼を受けて応答を終えるとき", reason)
         self.assertFalse((self.project / "target" / "verify-on-stop.last-ok").exists())
         os.killpg(other.pid, 9)
         other.wait()
@@ -223,6 +225,11 @@ class TestOtherBuild(HookTestCase):
         elsewhere = tempfile.TemporaryDirectory()
         self.addCleanup(elsewhere.cleanup)
         fake_maven.start_java_build(self, elsewhere.name)
+        self.assert_passed(self.run_hook())
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_動かし続けている_spring_boot_run_は数えない(self):
+        fake_maven.start_java_run(self, self.project)
         self.assert_passed(self.run_hook())
         self.assertEqual(len(self.calls()), 1)
 
