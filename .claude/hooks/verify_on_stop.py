@@ -6,6 +6,10 @@
   - 前回 verify が成功したときから src/ と frontend/src/ の中身が変わっていないとき
     （verify は 1〜2 分かかるため。中身のハッシュを target/verify-on-stop.last-ok に残して比べる）
 
+ほかの Maven のビルド（手で動かした verify、pre-push など）が動いているとき:
+  verify を動かさず、その理由を decision=block で Claude に返す（other_builds.py）。
+  確認済みのハッシュは残さないので、次に応答を終えるときにもう一度確かめる。
+
 テスト: python3 -m unittest discover -s .claude/hooks/tests -v
 
 入力: stdin に Stop の hook 入力 JSON
@@ -20,6 +24,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+import other_builds
 
 # 変わったら verify を動かし直すディレクトリ（プロジェクトのルートから）
 WATCHED_DIRS = ("src", "frontend/src")
@@ -102,6 +108,17 @@ def main() -> None:
     current = source_hash(project_dir)
     if state_file.is_file() and state_file.read_text().strip() == current:
         sys.exit(0)
+
+    # 確認済みのハッシュは残さないので、次に応答を終えるときにもう一度確かめる
+    builds = other_builds.find_other_maven_builds(project_dir)
+    if builds:
+        block(
+            f"ほかの Maven のビルドが動いているので、応答を終える前の {' '.join(VERIFY_COMMAND)} を今回は飛ばしました: "
+            f"{other_builds.summary(builds)}。\n"
+            f"同時に動かすと target/ や frontend/node_modules を取り合って失敗するためです。"
+            f"確認済みの記録は残していないので、次に応答を終えるときにもう一度確かめます。"
+            f"ほかのビルドが終わるまで、新しく ./mvnw を動かさないでください。"
+        )
 
     code, output = run(VERIFY_COMMAND, project_dir)
     log_file = project_dir / LOG_FILE

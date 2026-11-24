@@ -17,6 +17,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import fake_maven
+
 SCRIPT = Path(__file__).resolve().parent.parent / "verify_on_stop.py"
 
 FAKE_MVNW = """#!/bin/sh
@@ -47,7 +49,7 @@ class HookTestCase(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 
-    def run_hook(self, stop_hook_active=False, fail="", extra_env=None, raw_input=None):
+    def run_hook(self, stop_hook_active=False, fail="", extra_env=None, raw_input=None, under_build=False):
         payload = raw_input
         if payload is None:
             payload = json.dumps(
@@ -64,8 +66,12 @@ class HookTestCase(unittest.TestCase):
             "FAKE_FAIL": fail,
             **(extra_env or {}),
         }
+        command = [sys.executable, str(SCRIPT)]
+        if under_build:
+            command = fake_maven.under_build(command)
         return subprocess.run(
-            [sys.executable, str(SCRIPT)],
+            command,
+            cwd=self.project,
             input=payload,
             capture_output=True,
             text=True,
@@ -175,6 +181,55 @@ class TestStopHookActive(HookTestCase):
     def test_stop_hook_active_なら動かさない(self):
         self.assert_passed(self.run_hook(stop_hook_active=True, fail="x"))
         self.assertEqual(self.calls(), [])
+
+
+class TestOtherBuild(HookTestCase):
+    """ほかの ./mvnw verify（手で動かしたもの、pre-push、もう1つの hook）とぶつからないようにする。"""
+
+    def test_ほかのビルドが動いていたら_verify_を動かさず理由を返す(self):
+        other = fake_maven.start_java_build(self, self.project)
+        reason = self.assert_blocked(self.run_hook())
+        self.assertEqual(self.calls(), [])
+        self.assertIn("ほかの Maven のビルド", reason)
+        self.assertIn(str(other.pid), reason)
+
+    def test_sh_で動いている_mvnw_もほかのビルドとして数える(self):
+        other = fake_maven.start_mvnw_build(self, self.project)
+        reason = self.assert_blocked(self.run_hook())
+        self.assertEqual(self.calls(), [])
+        self.assertIn(str(other.pid), reason)
+
+    def test_飛ばしたときは確認済みのハッシュを残さず次にもう一度確かめる(self):
+        other = fake_maven.start_java_build(self, self.project)
+        reason = self.assert_blocked(self.run_hook())
+        self.assertIn("次に応答を終えるとき", reason)
+        self.assertFalse((self.project / "target" / "verify-on-stop.last-ok").exists())
+        os.killpg(other.pid, 9)
+        other.wait()
+        self.assert_passed(self.run_hook())
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_確認済みで変更がなければ_ほかのビルドが動いていても何も言わない(self):
+        self.assert_passed(self.run_hook())
+        fake_maven.start_java_build(self, self.project)
+        self.assert_passed(self.run_hook())
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_自分を動かしたビルドはほかのビルドと見間違えない(self):
+        self.assert_passed(self.run_hook(under_build=True))
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_別のディレクトリのビルドは数えない(self):
+        elsewhere = tempfile.TemporaryDirectory()
+        self.addCleanup(elsewhere.cleanup)
+        fake_maven.start_java_build(self, elsewhere.name)
+        self.assert_passed(self.run_hook())
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_mvnw_という引数を持つだけのプロセスは数えない(self):
+        fake_maven.start_unrelated(self, self.project)
+        self.assert_passed(self.run_hook())
+        self.assertEqual(len(self.calls()), 1)
 
 
 class TestBadInput(HookTestCase):

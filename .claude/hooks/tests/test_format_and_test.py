@@ -17,6 +17,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import fake_maven
+
 SCRIPT = Path(__file__).resolve().parent.parent / "format_and_test.py"
 
 FAKE_COMMAND = """#!/bin/sh
@@ -43,7 +45,7 @@ class HookTestCase(unittest.TestCase):
             path.write_text(FAKE_COMMAND)
             path.chmod(0o755)
 
-    def run_hook(self, file_path, tool_name="Edit", fail_on="", extra_env=None):
+    def run_hook(self, file_path, tool_name="Edit", fail_on="", extra_env=None, under_build=False):
         payload = json.dumps(
             {
                 "hook_event_name": "PostToolUse",
@@ -60,8 +62,12 @@ class HookTestCase(unittest.TestCase):
             "FAKE_FAIL_ON": fail_on,
             **(extra_env or {}),
         }
+        command = [sys.executable, str(SCRIPT)]
+        if under_build:
+            command = fake_maven.under_build(command)
         return subprocess.run(
-            [sys.executable, str(SCRIPT)],
+            command,
+            cwd=self.project,
             input=payload,
             capture_output=True,
             text=True,
@@ -179,6 +185,53 @@ class TestFrontend(HookTestCase):
         (self.bin / "npx").write_text("#!/bin/sh\nexec sleep 5\n")
         proc = self.run_hook(self.path("frontend/src/App.tsx"), extra_env={"FORMAT_AND_TEST_TIMEOUT": "1"})
         self.assertBlockedWith(proc, "Prettier", "1 秒でタイムアウトしました")
+
+
+# ------------------------------------------------------------------ ほかのビルドとの衝突
+
+
+class TestOtherBuild(HookTestCase):
+    """ほかの ./mvnw verify（手で動かしたもの、pre-push、Stop の hook）とぶつからないようにする。"""
+
+    def assertSkippedWith(self, proc, *texts):
+        # 飛ばしたことは、止めずに（block にせず）additionalContext で Claude に伝える
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        self.assertTrue(proc.stdout.strip(), msg="飛ばした理由が Claude に返されなかった")
+        out = json.loads(proc.stdout)
+        self.assertNotIn("decision", out)
+        self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "PostToolUse")
+        for text in texts:
+            self.assertIn(text, out["hookSpecificOutput"]["additionalContext"])
+
+    def test_frontend_の変更で_ほかのビルドが動いていたら何も動かさず理由を伝える(self):
+        other = fake_maven.start_java_build(self, self.project)
+        proc = self.run_hook(self.path("frontend/src/App.tsx"))
+        self.assertSkippedWith(proc, "ほかの Maven のビルド", str(other.pid), "App.tsx")
+        self.assertEqual(self.calls(), [])
+
+    def test_java_の変更で_ほかのビルドが動いていたら何も動かさず理由を伝える(self):
+        other = fake_maven.start_mvnw_build(self, self.project)
+        proc = self.run_hook(self.path("src/main/java/com/example/Foo.java"))
+        self.assertSkippedWith(proc, "ほかの Maven のビルド", str(other.pid), "Foo.java")
+        self.assertEqual(self.calls(), [])
+
+    def test_対象外のファイルでは_ほかのビルドが動いていても何も言わない(self):
+        fake_maven.start_java_build(self, self.project)
+        proc = self.run_hook(self.path("README.md"))
+        self.assertSilent(proc)
+
+    def test_自分を動かしたビルドはほかのビルドと見間違えない(self):
+        proc = self.run_hook(self.path("frontend/src/App.tsx"), under_build=True)
+        self.assertSilent(proc)
+        self.assertEqual(len(self.calls()), 2)
+
+    def test_別のディレクトリのビルドは数えない(self):
+        elsewhere = tempfile.TemporaryDirectory()
+        self.addCleanup(elsewhere.cleanup)
+        fake_maven.start_java_build(self, elsewhere.name)
+        proc = self.run_hook(self.path("frontend/src/App.tsx"))
+        self.assertSilent(proc)
+        self.assertEqual(len(self.calls()), 2)
 
 
 # ------------------------------------------------------------------ 対象外
