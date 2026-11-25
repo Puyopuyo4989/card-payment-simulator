@@ -121,7 +121,8 @@ frontend/
     ├── App.tsx
     ├── setupTests.ts                    # Vitest の準備（jest-dom を読み込む）
     ├── shared/
-    │   └── formatYen.ts                 # 3桁区切り（FR-014）
+    │   ├── formatYen.ts                 # 3桁区切り（FR-014）
+    │   └── inputFormat.ts               # 【Should・2026-11-25】入力欄のカンマと .0（FR-015〜FR-018）。リボ払いと共通。文字の操作だけで、数に変えない
     └── features/installment/
         ├── api.ts                       # POST /api/installment-simulations を呼ぶ
         ├── types.ts                     # API の型（contracts と同じ項目名）

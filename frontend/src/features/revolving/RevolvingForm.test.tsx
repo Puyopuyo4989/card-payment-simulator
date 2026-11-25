@@ -129,3 +129,138 @@ test('実行中は「計算する」を押せない', () => {
 
   expect(screen.getByRole('button', { name: '計算する' })).toBeDisabled()
 })
+
+// 【Should】入力欄の表示（FR-016〜FR-019。分割払いの FR-015〜FR-018 と同じ動き）
+const balanceBox = () => screen.getByRole('textbox', { name: '利用残高（円）' })
+const paymentBox = () =>
+  screen.getByRole('textbox', { name: '毎月の支払額（円）' })
+const rateBox = () => screen.getByRole('textbox', { name: '実質年率（%）' })
+
+test.each([
+  ['利用残高（円）', balanceBox],
+  ['毎月の支払額（円）', paymentBox],
+])(
+  '%s は、入力中はカンマを差し込まず、フォーカスが外れたら3桁区切りにする（FR-016・FR-019）',
+  async (_name, box) => {
+    const user = userEvent.setup()
+    render(<RevolvingForm onSubmit={vi.fn()} />)
+
+    await user.type(box(), '1000000')
+    expect(box()).toHaveValue('1000000')
+
+    await user.tab()
+    expect(box()).toHaveValue('1,000,000')
+  },
+)
+
+test('実質年率は、整数ならフォーカスが外れたら小数第1位まで表示する（FR-017）', async () => {
+  const user = userEvent.setup()
+  render(<RevolvingForm onSubmit={vi.fn()} />)
+
+  await user.type(rateBox(), '15')
+  expect(rateBox()).toHaveValue('15')
+
+  await user.tab()
+  expect(rateBox()).toHaveValue('15.0')
+})
+
+test('カンマ付きの金額は、カンマを取り除いて送る（利用者が入れたカンマも。FR-016・FR-018）', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<RevolvingForm onSubmit={onSubmit} />)
+
+  await user.type(balanceBox(), '1,00,000')
+  await user.type(paymentBox(), '10,000')
+  await user.type(rateBox(), '15')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(balanceBox()).toHaveValue('100,000')
+  expect(paymentBox()).toHaveValue('10,000')
+  expect(rateBox()).toHaveValue('15.0')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    balance: '100000',
+    monthlyPayment: '10000',
+    annualRate: '15.0',
+  })
+})
+
+test('入力欄で Enter を押して送ったときも、カンマを取り除いて送る（表示はフォーカスがあるので整えない）', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<RevolvingForm onSubmit={onSubmit} />)
+
+  await user.type(balanceBox(), '100,000')
+  await user.type(paymentBox(), '10,000{Enter}')
+
+  expect(paymentBox()).toHaveValue('10,000')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    balance: '100000',
+    monthlyPayment: '10000',
+    annualRate: '',
+  })
+})
+
+test.each([
+  ['abc', '1000.5', '15.5'],
+  ['1,000.5', '-1,000', '12.25'],
+  ['１００００', '10,000円', 'abc'],
+])(
+  '整えられない値（利用残高 %j・毎月の支払額 %j・実質年率 %j）は、入力されたまま残して、そのまま送る（API がエラーにする）',
+  async (balance, monthlyPayment, annualRate) => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    render(<RevolvingForm onSubmit={onSubmit} />)
+
+    await user.type(balanceBox(), balance)
+    await user.type(paymentBox(), monthlyPayment)
+    await user.type(rateBox(), annualRate)
+    await user.click(screen.getByRole('button', { name: '計算する' }))
+
+    expect(balanceBox()).toHaveValue(balance)
+    expect(paymentBox()).toHaveValue(monthlyPayment)
+    expect(rateBox()).toHaveValue(annualRate)
+    expect(onSubmit).toHaveBeenLastCalledWith({
+      balance,
+      monthlyPayment,
+      annualRate,
+    })
+  },
+)
+
+test('後ろに空白のある「100,000 」「10,000 」（コピーして貼り付けたとき）も、空白とカンマを取り除いて受け付ける', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<RevolvingForm onSubmit={onSubmit} />)
+
+  await user.click(balanceBox())
+  await user.paste('100,000 ')
+  await user.click(paymentBox())
+  await user.paste('10,000 ')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(balanceBox()).toHaveValue('100,000')
+  expect(paymentBox()).toHaveValue('10,000')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    balance: '100000',
+    monthlyPayment: '10000',
+    annualRate: '',
+  })
+})
+
+test('大きな桁の金額も、丸めずにカンマを付け、カンマを取り除いて送る（数に変えない）', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<RevolvingForm onSubmit={onSubmit} />)
+
+  await user.type(balanceBox(), '12345678901234567890')
+  await user.type(paymentBox(), '98765432109876543210')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(balanceBox()).toHaveValue('12,345,678,901,234,567,890')
+  expect(paymentBox()).toHaveValue('98,765,432,109,876,543,210')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    balance: '12345678901234567890',
+    monthlyPayment: '98765432109876543210',
+    annualRate: '',
+  })
+})

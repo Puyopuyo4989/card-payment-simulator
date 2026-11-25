@@ -121,6 +121,7 @@ FR-004 の条件のうち、「1回目の手数料以下」と「360回を超え
 | 移すもの | 今の場所 | 移す先（提案） | 内容 |
 |---|---|---|---|
 | 金額の表示 | `shared/formatYen.ts` | そのまま | すでに共通の場所にある。リボ払いでも使う（FR-015） |
+| 入力欄の表示の整え方（2026-11-25 に追加） | `features/installment/inputFormat.ts` | `shared/inputFormat.ts` | 金額のカンマを付ける・取る、整数の年率に `.0` を付ける（分割払いの FR-015〜FR-018、リボ払いの FR-016〜FR-019）。文字の操作だけで、数に変えない |
 | 返済表 | `features/installment/ScheduleTable.tsx` | `shared/ScheduleTable.tsx` | 列（回・支払額・手数料・元金・支払後の残高）が2機能で同じ |
 | API の型の共通部分 | `features/installment/types.ts` | `shared/types.ts` | `ScheduleRow`、`FieldError<項目名>`、`SimulationOutcome<結果, 項目名>` |
 | API の呼び出し | `features/installment/api.ts` | `shared/postSimulation.ts` | URL を受け取って POST し、成功・入力エラー・予期しないエラーに分ける処理。各機能の `api.ts` は、URL と型を渡すだけにする |

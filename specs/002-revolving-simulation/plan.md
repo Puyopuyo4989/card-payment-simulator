@@ -53,7 +53,7 @@ NEEDS CLARIFICATION は残っていない。spec と ADR と分割払いの計�
 | V. APIでつなぐ・1リポジトリ・1 jar | 境界が API だけか。成果物が1つか | OK：画面と計算は `POST /api/revolving-simulations` だけでつながる | OK：同じ jar に入る。quickstart で確かめる |
 | VI. PRを通す | | OK：この機能も PR で main に入れる。PR の前にスキル②（pre-pr-check）を使う | OK |
 | VII. 秘密情報 | 秘密情報が要るか | OK：要らない | OK |
-| VIII. シンプルさ | 範囲外のものを作らないか | OK：残高スライド方式・追加の利用・繰上げ返済・保存・比較表は作らない | OK：ルーター・ページ分け・入力値の整形（分割払いの FR-015〜FR-022 にあたるもの）は作らない（R7・R8）。共通化は、2機能で今すでに同じものだけにした（R6） |
+| VIII. シンプルさ | 範囲外のものを作らないか | OK：残高スライド方式・追加の利用・繰上げ返済・保存・比較表は作らない | OK：ルーター・ページ分けは作らない（R7・R8）。分割払いの FR-015〜FR-018（入力欄のカンマと `.0`）にあたるものは、2026-11-25 にユーザーの判断で spec の FR-016〜FR-019（Should）として足し、作る（分割払いと共通の `shared/inputFormat.ts`。tasks.md T064〜T068）。分割払いの FR-019〜FR-022（画面のデザイン）にあたるものは、共通の CSS（`index.css`・`tokens.css`）で当たっている。共通化は、2機能で今すでに同じものだけにした（R6） |
 | IX. 日本語 | | OK | OK |
 
 違反はない。「Complexity Tracking」は空。
@@ -121,14 +121,15 @@ frontend/src/
 │   ├── fieldErrors.tsx                         #（移）入力欄のエラーの属性とメッセージ
 │   ├── useSimulation.ts                        #（移）InstallmentPage の実行中・結果の扱い
 │   ├── useReturnFocus.ts                       #（移）InstallmentForm のフォーカスを戻す処理
-│   └── ScheduleTable.tsx                       #（移）installment から
+│   ├── ScheduleTable.tsx                       #（移）installment から
+│   └── inputFormat.ts                          #（移・2026-11-25）入力欄のカンマと .0（FR-016〜FR-019）。分割払いの FR-015〜FR-018 と共通
 └── features/
     ├── installment/                            #（変）共通のものを使うように直すだけ
     └── revolving/                              #（新）
         ├── api.ts                              # POST /api/revolving-simulations を呼ぶ
         ├── types.ts                            # API の型（contracts と同じ項目名）
         ├── RevolvingPage.tsx
-        ├── RevolvingForm.tsx                   # 利用残高・毎月の支払額・実質年率（3つとも文字の入力欄）
+        ├── RevolvingForm.tsx                   # 利用残高・毎月の支払額・実質年率（3つとも文字の入力欄。【Should】フォーカスが外れたら整える）
         ├── RevolvingSummary.tsx                # 完済までの支払回数・手数料の合計・支払総額（FR-013）
         └── *.test.tsx / *.test.ts              # テストは対象のファイルの隣に置く
 ```

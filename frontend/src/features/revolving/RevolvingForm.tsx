@@ -1,5 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { fieldErrors } from '../../shared/fieldErrors'
+import {
+  amountForApi,
+  formatAmountInput,
+  formatRateInput,
+} from '../../shared/inputFormat'
 import { useReturnFocus } from '../../shared/useReturnFocus'
 import type { FieldError, RevolvingSimulationRequest } from './types'
 
@@ -13,7 +18,9 @@ type Props = {
 
 /**
  * 入力フォーム。入力のチェックはサーバーが行うので、入力されたままの文字列を渡す。
- * エラーの表示とフォーカスを戻す処理は、分割払いと共通（shared/fieldErrors・shared/useReturnFocus）
+ * 【Should】ただし金額のカンマは取り除いて渡し、フォーカスが外れたときに表示を整える（FR-016〜FR-019）。
+ * 整えられない値は、入力されたまま渡す（チェックはサーバー）。
+ * エラーの表示とフォーカスを戻す処理、入力欄の整え方は、分割払いと共通（shared/fieldErrors・shared/useReturnFocus・shared/inputFormat）
  */
 export default function RevolvingForm({
   onSubmit,
@@ -29,7 +36,12 @@ export default function RevolvingForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    onSubmit({ balance, monthlyPayment, annualRate })
+    // 【Should】金額は、表示のカンマを取り除いて送る（FR-016・FR-018）。実質年率は入力されたまま
+    onSubmit({
+      balance: amountForApi(balance),
+      monthlyPayment: amountForApi(monthlyPayment),
+      annualRate,
+    })
   }
 
   return (
@@ -42,6 +54,8 @@ export default function RevolvingForm({
           inputMode="numeric"
           value={balance}
           onChange={(event) => setBalance(event.target.value)}
+          // 【Should】入力中はカンマを差し込まず、フォーカスが外れたときに整える（FR-016・FR-019）
+          onBlur={() => setBalance(formatAmountInput)}
           {...errorAttributes('balance')}
         />
         {errorMessage('balance')}
@@ -54,6 +68,7 @@ export default function RevolvingForm({
           inputMode="numeric"
           value={monthlyPayment}
           onChange={(event) => setMonthlyPayment(event.target.value)}
+          onBlur={() => setMonthlyPayment(formatAmountInput)}
           {...errorAttributes('monthlyPayment')}
         />
         {errorMessage('monthlyPayment')}
@@ -66,6 +81,8 @@ export default function RevolvingForm({
           inputMode="decimal"
           value={annualRate}
           onChange={(event) => setAnnualRate(event.target.value)}
+          // 【Should】整数ならフォーカスが外れたときに小数第1位まで表示する（FR-017）
+          onBlur={() => setAnnualRate(formatRateInput)}
           {...errorAttributes('annualRate')}
         />
         {errorMessage('annualRate')}
