@@ -10,8 +10,12 @@ import com.example.cardpayment.cardapplication.domain.CardApplication;
 import com.example.cardpayment.cardapplication.repository.CardApplicationRepository;
 import com.example.cardpayment.common.config.MutableTestClock;
 import com.example.cardpayment.common.config.TestClockConfiguration;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -151,6 +155,220 @@ class CardApplicationApiTest {
         json.extractingPath("$.title").isEqualTo("リクエストの形式が正しくありません");
         json.doesNotHavePath("$.errors");
         assertThat(countApplications()).isZero();
+    }
+
+    // 2. 申込の一覧（US2）
+
+    @Test
+    void 一覧は申込日時の新しい順で4項目だけを返す() {
+        registerThreeMinutesApart();
+
+        var result = mvc.get().uri("/api/card-applications").exchange();
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        assertThat(result).hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.items[*].applicationNumber")
+                .asArray()
+                .containsExactly("A00000003", "A00000002", "A00000001");
+        json.extractingPath("$.items[0].nameKanji").isEqualTo("テスト 太郎");
+        json.extractingPath("$.items[0].status").isEqualTo("APPLIED");
+        json.extractingPath("$.items[0].appliedAt").isEqualTo("2026-11-25T01:32:00Z");
+        // 一覧に要らない個人情報は返さない（research.md R8）
+        assertThat(result)
+                .body()
+                .asString()
+                .doesNotContain(
+                        "birthDate", "phoneNumber", "annualIncome", "nameKana", "employerName");
+    }
+
+    @Test
+    void 一覧を状態で絞り込める() {
+        registerThreeMinutesApart();
+        setStatus("A00000002", "UNDER_REVIEW");
+
+        var underReview = mvc.get().uri("/api/card-applications?status=UNDER_REVIEW").exchange();
+        var applied = mvc.get().uri("/api/card-applications?status=APPLIED").exchange();
+
+        assertThat(underReview)
+                .bodyJson()
+                .extractingPath("$.items[*].applicationNumber")
+                .asArray()
+                .containsExactly("A00000002");
+        assertThat(applied)
+                .bodyJson()
+                .extractingPath("$.items[*].applicationNumber")
+                .asArray()
+                .containsExactly("A00000003", "A00000001");
+    }
+
+    @Test
+    void 状態が空のときはすべてを返す() {
+        registerThreeMinutesApart();
+
+        var result = mvc.get().uri("/api/card-applications?status=").exchange();
+
+        assertThat(result).bodyJson().extractingPath("$.items").asArray().hasSize(3);
+    }
+
+    @Test
+    void 該当する申込がないときは空のitemsを返す() {
+        var none = mvc.get().uri("/api/card-applications").exchange();
+        registerThreeMinutesApart();
+        var rejected = mvc.get().uri("/api/card-applications?status=REJECTED").exchange();
+
+        assertThat(none).hasStatus(HttpStatus.OK);
+        assertThat(none).body().asString().isEqualToIgnoringWhitespace("{\"items\":[]}");
+        assertThat(rejected).body().asString().isEqualToIgnoringWhitespace("{\"items\":[]}");
+    }
+
+    @Test
+    void 状態が4つの値のどれでもないときは400() {
+        var result = mvc.get().uri("/api/card-applications?status=applied").exchange();
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.title").isEqualTo("入力に誤りがあります");
+        json.extractingPath("$.errors[0].field").isEqualTo("status");
+        json.extractingPath("$.errors[0].message")
+                .isEqualTo("状態は APPLIED・UNDER_REVIEW・APPROVED・REJECTED のどれかを指定してください");
+    }
+
+    // 3. 申込の詳細（US2）
+
+    @Test
+    void 詳細は全項目と変更履歴を古い順に返す() {
+        register(VALID_REQUEST);
+        setStatus("A00000001", "REJECTED");
+        insertHistory(
+                "A00000001",
+                "2026-11-25T03:10:00Z",
+                "UNDER_REVIEW",
+                "REJECTED",
+                "テスト 担当B",
+                "テスト用の否決理由");
+        insertHistory(
+                "A00000001", "2026-11-25T02:00:00Z", "APPLIED", "UNDER_REVIEW", "テスト 担当A", null);
+
+        var result = mvc.get().uri("/api/card-applications/A00000001").exchange();
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.applicationNumber").isEqualTo("A00000001");
+        json.extractingPath("$.nameKana").isEqualTo("テスト　タロウ");
+        json.extractingPath("$.birthDate").isEqualTo("1990-04-01");
+        json.extractingPath("$.annualIncome").isEqualTo(450);
+        json.extractingPath("$.employerName").isEqualTo("テスト株式会社");
+        json.extractingPath("$.phoneNumber").isEqualTo("0000000000");
+        json.extractingPath("$.status").isEqualTo("REJECTED");
+        json.extractingPath("$.appliedAt").isEqualTo("2026-11-25T01:30:00Z");
+        json.extractingPath("$.version").isEqualTo(0);
+        json.extractingPath("$.history[0].changedAt").isEqualTo("2026-11-25T02:00:00Z");
+        json.extractingPath("$.history[0].fromStatus").isEqualTo("APPLIED");
+        json.extractingPath("$.history[0].toStatus").isEqualTo("UNDER_REVIEW");
+        json.extractingPath("$.history[0].staffName").isEqualTo("テスト 担当A");
+        json.extractingPath("$.history[0].rejectionReason").isNull();
+        json.extractingPath("$.history[1].toStatus").isEqualTo("REJECTED");
+        json.extractingPath("$.history[1].staffName").isEqualTo("テスト 担当B");
+        json.extractingPath("$.history[1].rejectionReason").isEqualTo("テスト用の否決理由");
+    }
+
+    @Test
+    void ない申込の詳細は404() {
+        register(VALID_REQUEST);
+
+        for (String number : new String[] {"A99999999", "abc"}) {
+            var result = mvc.get().uri("/api/card-applications/" + number).exchange();
+
+            assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+            assertThat(result).hasContentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON);
+            var json = assertThat(result).bodyJson();
+            json.extractingPath("$.type").isEqualTo("about:blank");
+            json.extractingPath("$.title").isEqualTo("申込が見つかりません");
+            json.extractingPath("$.status").isEqualTo(404);
+            json.extractingPath("$.detail").isEqualTo("申込番号を確かめてください");
+            json.extractingPath("$.instance").isEqualTo("/api/card-applications/" + number);
+        }
+    }
+
+    // 5. 登録・変更しないもの（spec FR-006。tasks.md T075）
+
+    @Test
+    void 申込の内容の変更と削除はできない() throws Exception {
+        register(VALID_REQUEST);
+        String before = detailBody("A00000001");
+
+        var put =
+                mvc.put()
+                        .uri("/api/card-applications/A00000001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_REQUEST.replace("テスト 太郎", "見本 花子"))
+                        .exchange();
+        var patch =
+                mvc.patch()
+                        .uri("/api/card-applications/A00000001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nameKanji\":\"見本 花子\"}")
+                        .exchange();
+        var delete = mvc.delete().uri("/api/card-applications/A00000001").exchange();
+
+        assertThat(put).hasStatus(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(patch).hasStatus(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(delete).hasStatus(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(detailBody("A00000001")).isEqualTo(before);
+        assertThat(countApplications()).isEqualTo(1);
+    }
+
+    private String detailBody(String number) throws Exception {
+        return mvc.get()
+                .uri("/api/card-applications/" + number)
+                .exchange()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    /** 日本時間 10:30・10:31・10:32 に1件ずつ登録する（A00000001〜A00000003）。 */
+    private void registerThreeMinutesApart() {
+        for (int i = 0; i < 3; i++) {
+            register(VALID_REQUEST);
+            clock.advance(Duration.ofMinutes(1));
+        }
+    }
+
+    /** 状態の更新の API は US3 で作るので、ここでは SQL で直接変える。 */
+    private void setStatus(String number, String status) {
+        jdbcClient
+                .sql(
+                        "UPDATE card_application SET status = :status WHERE application_number = :number")
+                .param("status", status)
+                .param("number", number)
+                .update();
+    }
+
+    /** 履歴を足す API は US3 で作るので、ここでは SQL で直接入れる。 */
+    private void insertHistory(
+            String number,
+            String changedAt,
+            String from,
+            String to,
+            String staffName,
+            String reason) {
+        jdbcClient
+                .sql(
+                        """
+                        INSERT INTO card_application_status_history
+                          (application_number, changed_at, from_status, to_status, staff_name, rejection_reason)
+                        VALUES (:number, :changedAt, :from, :to, :staffName, :reason)
+                        """)
+                .param("number", number)
+                .param(
+                        "changedAt",
+                        OffsetDateTime.ofInstant(Instant.parse(changedAt), ZoneOffset.UTC))
+                .param("from", from)
+                .param("to", to)
+                .param("staffName", staffName)
+                .param("reason", reason)
+                .update();
     }
 
     private MvcTestResult register(String body) {

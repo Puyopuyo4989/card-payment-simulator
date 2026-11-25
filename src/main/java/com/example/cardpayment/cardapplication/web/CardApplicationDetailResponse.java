@@ -2,6 +2,7 @@ package com.example.cardpayment.cardapplication.web;
 
 import com.example.cardpayment.cardapplication.domain.ApplicationStatus;
 import com.example.cardpayment.cardapplication.domain.CardApplication;
+import com.example.cardpayment.cardapplication.domain.StatusHistoryEntry;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,8 +26,14 @@ public record CardApplicationDetailResponse(
         int version,
         List<StatusHistoryResponse> history) {
 
-    /** 登録したばかりの申込（履歴はまだない）。履歴を付けて返すのは US2 で足す。 */
+    /** 登録したばかりの申込（履歴はまだない）。 */
     static CardApplicationDetailResponse from(CardApplication application) {
+        return from(application, List.of());
+    }
+
+    /** 申込と変更履歴（古い順）。 */
+    static CardApplicationDetailResponse from(
+            CardApplication application, List<StatusHistoryEntry> history) {
         return new CardApplicationDetailResponse(
                 application.applicationNumber(),
                 application.nameKanji(),
@@ -39,6 +46,14 @@ public record CardApplicationDetailResponse(
                 application.appliedAt(),
                 application.updatedAt(),
                 application.version(),
-                List.of());
+                history.stream()
+                        .map(entry ->
+                                new StatusHistoryResponse(
+                                        entry.changedAt(),
+                                        entry.fromStatus(),
+                                        entry.toStatus(),
+                                        entry.staffName(),
+                                        entry.rejectionReason()))
+                        .toList());
     }
 }

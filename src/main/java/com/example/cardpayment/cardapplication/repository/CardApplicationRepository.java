@@ -3,12 +3,14 @@ package com.example.cardpayment.cardapplication.repository;
 import com.example.cardpayment.cardapplication.domain.ApplicationStatus;
 import com.example.cardpayment.cardapplication.domain.CardApplication;
 import com.example.cardpayment.cardapplication.domain.NewCardApplication;
+import com.example.cardpayment.cardapplication.domain.StatusHistoryEntry;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -63,6 +65,43 @@ public class CardApplicationRepository {
                 .param("number", applicationNumber)
                 .query(CardApplicationRepository::toApplication)
                 .optional();
+    }
+
+    /** 一覧。申込日時の新しい順で、同じ日時なら申込番号の大きい順（research.md R10）。 状態を指定したときは、その状態の申込だけを返す（spec FR-008）。 */
+    public List<CardApplication> findAll(Optional<ApplicationStatus> status) {
+        String order = " ORDER BY applied_at DESC, application_number DESC";
+        if (status.isEmpty()) {
+            return jdbcClient
+                    .sql(SELECT_COLUMNS + order)
+                    .query(CardApplicationRepository::toApplication)
+                    .list();
+        }
+        return jdbcClient
+                .sql(SELECT_COLUMNS + " WHERE status = :status" + order)
+                .param("status", status.get().name())
+                .query(CardApplicationRepository::toApplication)
+                .list();
+    }
+
+    /** 申込の変更履歴。変更日時の古い順で、同じ日時なら入れた順（spec FR-018）。 */
+    public List<StatusHistoryEntry> findHistory(String applicationNumber) {
+        return jdbcClient
+                .sql(
+                        """
+                        SELECT changed_at, from_status, to_status, staff_name, rejection_reason
+                          FROM card_application_status_history
+                         WHERE application_number = :number
+                         ORDER BY changed_at, id
+                        """)
+                .param("number", applicationNumber)
+                .query((rs, rowNum) ->
+                        new StatusHistoryEntry(
+                                fromDb(rs, "changed_at"),
+                                ApplicationStatus.valueOf(rs.getString("from_status")),
+                                ApplicationStatus.valueOf(rs.getString("to_status")),
+                                rs.getString("staff_name"),
+                                rs.getString("rejection_reason")))
+                .list();
     }
 
     private static CardApplication toApplication(ResultSet rs, int rowNum) throws SQLException {
