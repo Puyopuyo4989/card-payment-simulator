@@ -20,10 +20,11 @@ test('申込のときは「審査中にする」だけを出す', () => {
   ])
 })
 
-test('審査中のときは「承認する」と「否決する」を出す', () => {
+// 2つ以上あるときは、選んでから「決定する」で変える（T081）。label は選ぶ欄の名前
+test('審査中のときは「承認」と「否決」を選ばせる', () => {
   expect(nextActions('UNDER_REVIEW')).toEqual([
-    { toStatus: 'APPROVED', label: '承認する' },
-    { toStatus: 'REJECTED', label: '否決する' },
+    { toStatus: 'APPROVED', label: '承認' },
+    { toStatus: 'REJECTED', label: '否決' },
   ])
 })
 

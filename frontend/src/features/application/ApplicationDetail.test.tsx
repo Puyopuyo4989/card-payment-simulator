@@ -197,7 +197,7 @@ test('状態の変更が成功すると、返った詳細で状態・更新日�
   await user.click(screen.getByRole('button', { name: '審査中にする' }))
 
   expect(
-    await screen.findByRole('button', { name: '承認する' }),
+    await screen.findByRole('button', { name: '決定する' }),
   ).toBeInTheDocument()
   expect(summaryOf(container)['状態']).toBe('審査中')
   expect(summaryOf(container)['更新日時']).toBe('2026/11/25 11:00')
@@ -247,8 +247,9 @@ test('ほかの担当者とぶつかったら、詳細を読み直して最新�
   )
 
   await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当B')
+  await user.click(screen.getByRole('radio', { name: '否決' }))
   await user.type(screen.getByLabelText('否決の理由'), 'テスト用の否決理由')
-  await user.click(screen.getByRole('button', { name: '否決する' }))
+  await user.click(screen.getByRole('button', { name: '決定する' }))
 
   expect(
     await screen.findByText('審査が終わった申込の状態は変えられません'),
@@ -275,8 +276,9 @@ test('一覧に戻るボタンで一覧に戻る', async () => {
   )
 })
 
-// 取り消せない決定のボタンにフォーカスがあると、続けて Enter を押しただけで承認・否決になる（T086）
-test('「審査中にする」が成功して「承認する」「否決する」が出たあと、どちらにもフォーカスがない', async () => {
+// 取り消せない決定のボタンにフォーカスがあると、続けて Enter を押しただけで承認・否決になる（T086）。
+// 成功したら「○○に変更しました」にフォーカスを移す（T085）
+test('「審査中にする」が成功したら「審査中に変更しました」にフォーカスを移し、承認・否決の操作にはフォーカスがない', async () => {
   const user = userEvent.setup()
   getDetailMock.mockResolvedValue({ kind: 'success', result: applied })
   vi.mocked(changeStatus).mockResolvedValue({
@@ -293,10 +295,13 @@ test('「審査中にする」が成功して「承認する」「否決する�
   await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当A')
   await user.click(screen.getByRole('button', { name: '審査中にする' }))
 
-  const approve = await screen.findByRole('button', { name: '承認する' })
-  const reject = screen.getByRole('button', { name: '否決する' })
-  expect(approve).not.toHaveFocus()
-  expect(reject).not.toHaveFocus()
+  const decide = await screen.findByRole('button', { name: '決定する' })
+  const status = screen.getByRole('status')
+  expect(status).toHaveTextContent('審査中に変更しました')
+  expect(status).toHaveFocus()
+  expect(decide).not.toHaveFocus()
+  expect(screen.getByRole('radio', { name: '承認' })).not.toHaveFocus()
+  expect(screen.getByRole('radio', { name: '否決' })).not.toHaveFocus()
 })
 
 test('読み込みが終わるまでは「読み込み中です」を出し、終わったら消す', async () => {
@@ -340,7 +345,8 @@ test('ぶつかったあとの読み直しに失敗しても、今の詳細と 4
   )
 
   await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当B')
-  await user.click(screen.getByRole('button', { name: '承認する' }))
+  await user.click(screen.getByRole('radio', { name: '承認' }))
+  await user.click(screen.getByRole('button', { name: '決定する' }))
 
   expect(
     await screen.findByText(
@@ -367,7 +373,8 @@ test('ぶつかったあとの読み直しに失敗しても、今の詳細と 4
     kind: 'success',
     result: { ...underReview, status: 'APPROVED', version: 2 },
   })
-  await user.click(screen.getByRole('button', { name: '承認する' }))
+  // 選んだ「承認」は残っているので、そのまま決定する
+  await user.click(screen.getByRole('button', { name: '決定する' }))
 
   expect(
     await screen.findByText('審査が終わった申込の状態は変えられません'),

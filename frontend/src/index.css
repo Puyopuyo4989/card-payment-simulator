@@ -339,6 +339,53 @@ body {
   white-space: normal;
 }
 
+/*
+ * 承認・否決を選ぶ欄（003 の T081）。登録のフォームと同じく、見出し（legend）をラベルの列に、
+ * 選択肢を入力欄の列に置く。狭い画面では見出しを上に置く
+ */
+.radio-field {
+  display: grid;
+  grid-template-columns: var(--form-label-width) var(--form-input-width);
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.radio-field > legend {
+  float: left;
+  grid-column: 1;
+  padding: 0;
+  font-weight: bold;
+}
+
+.radio-field > .radio-options,
+.radio-field > .field-error {
+  grid-column: 2;
+}
+
+.radio-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.radio-options > label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+}
+
+/* 成功の知らせ（003 の T085）。フォーカスを移すので、フォーカスの輪が見えるようにする */
+.notice[role='status']:focus-visible,
+.notice[role='status']:focus {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 /* 【Should】申込の一覧のキーワード検索（003 の R13）。「検索」は入力欄の右に置く */
 .search-field {
   grid-template-columns: var(--form-label-width) var(--form-input-width) auto;
@@ -362,6 +409,16 @@ body {
   .search-field > button {
     grid-column: 1;
     justify-self: start;
+  }
+
+  .radio-field {
+    grid-template-columns: 1fr;
+  }
+
+  .radio-field > legend,
+  .radio-field > .radio-options,
+  .radio-field > .field-error {
+    grid-column: 1;
   }
 
   .panel {
