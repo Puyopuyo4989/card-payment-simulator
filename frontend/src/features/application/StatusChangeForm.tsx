@@ -36,7 +36,6 @@ export default function StatusChangeForm({
   const [staffName, setStaffName] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [decision, setDecision] = useState<ApplicationStatus | null>(null)
-  const [decisionMissing, setDecisionMissing] = useState(false)
   const [changedTo, setChangedTo] = useState<ApplicationStatus | null>(null)
   const [outcome, setOutcome] = useState<ApiOutcome<
     ApplicationDetail,
@@ -58,14 +57,22 @@ export default function StatusChangeForm({
   const errors = outcome?.kind === 'inputError' ? outcome.errors : []
   const { attributes: errorAttributes, message: errorMessage } =
     fieldErrors(errors)
-  // 入力欄のない項目（変更後の状態・版）のエラーは、フォームの上に出す
-  const formErrors = errors.filter(
-    (error) => error.field === 'toStatus' || error.field === 'version',
-  )
   const actions = nextActions(detail.status)
   const twoStep = actions.length > 1
+  // 審査の結果を選ばずに送ったときの toStatus の誤りは、選ぶ欄の下に、画面の言葉で出す
+  const decisionMissing =
+    twoStep &&
+    decision === null &&
+    errors.some((error) => error.field === 'toStatus')
+  // 入力欄のない項目（変更後の状態・版）のエラーは、フォームの上に出す
+  const formErrors = errors.filter(
+    (error) =>
+      (error.field === 'toStatus' && !decisionMissing) ||
+      error.field === 'version',
+  )
 
-  async function submit(toStatus: ApplicationStatus) {
+  /** toStatus が '' のときは、審査の結果を選ばずに「決定する」を押したとき（誤りはサーバーがまとめて返す） */
+  async function submit(toStatus: ApplicationStatus | '') {
     setOutcome(null)
     setChangedTo(null)
     setSubmitting(true)
@@ -93,15 +100,27 @@ export default function StatusChangeForm({
   }
 
   function handleDecide() {
-    if (decision === null) {
-      setDecisionMissing(true)
-      return
-    }
-    submit(decision)
+    // 選んでいなくても送る。担当者名などの誤りも一度に出すため（登録の FR-003 と同じ）
+    submit(decision ?? '')
+  }
+
+  function handleSelect(toStatus: ApplicationStatus) {
+    setDecision(toStatus)
+    // 選んだので、審査の結果の誤りだけを消す（ほかの欄の誤りは残す）
+    setOutcome((previous) =>
+      previous?.kind === 'inputError'
+        ? {
+            ...previous,
+            errors: previous.errors.filter(
+              (error) => error.field !== 'toStatus',
+            ),
+          }
+        : previous,
+    )
   }
 
   return (
-    <section aria-labelledby="status-change-heading">
+    <section className="stack" aria-labelledby="status-change-heading">
       <h3 id="status-change-heading">状態の変更</h3>
       {changedTo && (
         <p ref={statusRef} role="status" tabIndex={-1} className="notice">
@@ -156,10 +175,7 @@ export default function StatusChangeForm({
                       name="decision"
                       value={action.toStatus}
                       checked={decision === action.toStatus}
-                      onChange={() => {
-                        setDecision(action.toStatus)
-                        setDecisionMissing(false)
-                      }}
+                      onChange={() => handleSelect(action.toStatus)}
                     />
                     {action.label}
                   </label>

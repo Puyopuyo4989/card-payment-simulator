@@ -293,6 +293,15 @@ Must の画面の目視（ユーザー、T072）と、PR 前のコードレビ�
 - T078：`api.test.ts`・`StatusChangeForm.test.tsx` のテストを先に足して red を確かめ、直して green。409 の本文に `title` がないときは「ほかの担当者が先に状態を変えました」を出す
 - T076・T077・T079：見た目だけの直しで、jsdom では確かめられない。この環境にはブラウザーがないので、**直す前と後の画面の確認はまだしていない**（チェックはまだ付けない。人が画面で確かめたら付ける）。直した内容：
   - T076：一覧の「新規登録」を `.page-actions`（`margin-bottom: var(--space-4)`）で囲んだ（`ApplicationPage.tsx`・`index.css`）
+  - T076 の続き（2026-11-25、ユーザーの画面の確認で見つかったもの）：「状態」の行と表の間、409 のエラーの枠と「担当者名」の行の間にもすき間がなかった。
+    1か所ずつ直さず、`index.css` の `.stack > * + * { margin-top: var(--space-4) }` だけで「部品と部品の間のすき間」を決める形にした。
+    `.stack` は申込管理のタブ全体（`ApplicationPage.tsx`）と状態の変更（`StatusChangeForm.tsx` の `section`）に付けた。`.page-actions` と `.pager` の `margin-top` は消した。
+    分割払い・リボ払いの画面は `.stack` を使わず、今回変えた CSS（`.stack`・`.search-field`・`.pager`）もそこでは使っていないので、見た目は変わらない（画面での確認はユーザー）。
+    一覧の「検索」ボタンが `auto` の列いっぱいに伸びていたので、`justify-self: start` で文字に合わせた幅にした
+- 状態の変更の不具合（2026-11-25、ユーザーの画面の確認で見つかったもの）：審査中で何も入力せずに「決定する」を押すと、「承認か否決を選んでください」だけが出て、担当者名の誤りが出なかった（画面で止めて API を呼んでいなかった）。
+  登録（FR-003）と同じく誤りを一度に出すため、選んでいなくても `toStatus` を空で送り、サーバーが返す誤り（`toStatus`・`staffName`・`rejectionReason`）をすべてそれぞれの欄の下に出すようにした。
+  `toStatus` の誤りは、審査の結果を選んでいないときは選ぶ欄の下に「承認か否決を選んでください」と出す。選んだらその誤りだけを消す。
+  `StatusChangeForm.test.tsx` にテストを先に足し、red（API を呼ばない）を確かめてから直した。「審査中にする」で担当者名の誤りが出ることのテストも足した
   - T077：詳細の `dl` に `.detail-summary` を足し、`justify-content: flex-start` と、`dt` の幅 `var(--form-label-width)` にした。`.summary` そのものは変えていない
   - T079：変更履歴の表に `.history-table` を足し、セルを `white-space: nowrap` に、否決の理由の列だけ折り返す（最小の幅 `var(--form-input-width)`）。横のスクロールは今の `.table-wrap` のまま。`.schedule-table`・`.table-wrap` は変えていない
 

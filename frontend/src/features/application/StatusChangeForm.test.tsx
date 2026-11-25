@@ -121,28 +121,91 @@ test('選ぶだけでは送らない', async () => {
   expect(changeStatusMock).not.toHaveBeenCalled()
 })
 
-test('何も選ばずに「決定する」を押すと、選ぶ欄の下にエラーを出し、送らない', async () => {
+// 何も選ばないときも API に送り、サーバーの入力チェックの誤りを一度に出す（登録の FR-003 と同じ）
+const NOTHING_ENTERED = [
+  { field: 'toStatus', message: '変更後の状態を指定してください' },
+  { field: 'staffName', message: '担当者名を入力してください' },
+] as const
+
+test('何も入力せずに「決定する」を押すと、審査の結果と担当者名の誤りを一度に、それぞれの欄の下に出す', async () => {
   const user = userEvent.setup()
-  renderForm('UNDER_REVIEW')
+  changeStatusMock.mockResolvedValue({
+    kind: 'inputError',
+    errors: [...NOTHING_ENTERED],
+  })
+  renderForm('UNDER_REVIEW', { version: 2 })
 
   await user.click(screen.getByRole('button', { name: '決定する' }))
 
+  expect(changeStatusMock).toHaveBeenCalledWith('A00000001', {
+    toStatus: '',
+    staffName: '',
+    rejectionReason: '',
+    version: '2',
+  })
+  expect(
+    (await screen.findAllByRole('alert')).map((alert) => alert.textContent),
+    // 画面の上から順（担当者名の欄 → 審査の結果の欄）
+  ).toEqual(['担当者名を入力してください', NO_DECISION])
   const group = screen.getByRole('group', { name: '審査の結果' })
-  const alert = screen.getByRole('alert')
-  expect(alert).toHaveTextContent(NO_DECISION)
-  expect(group).toContainElement(alert)
+  expect(group).toContainElement(screen.getByText(NO_DECISION))
   expect(group).toHaveAccessibleDescription(NO_DECISION)
-  expect(changeStatusMock).not.toHaveBeenCalled()
+  expect(screen.getByLabelText('担当者名')).toHaveAccessibleDescription(
+    '担当者名を入力してください',
+  )
 })
 
-test('選んだらエラーを消す', async () => {
+test('「否決」を選んで何も入力せずに「決定する」を押すと、担当者名と否決の理由の誤りを一度に出す', async () => {
   const user = userEvent.setup()
+  changeStatusMock.mockResolvedValue({
+    kind: 'inputError',
+    errors: [
+      { field: 'staffName', message: '担当者名を入力してください' },
+      { field: 'rejectionReason', message: '否決の理由を入力してください' },
+    ],
+  })
+  renderForm('UNDER_REVIEW')
+
+  await user.click(screen.getByRole('radio', { name: '否決' }))
+  await user.click(screen.getByRole('button', { name: '決定する' }))
+
+  expect(
+    (await screen.findAllByRole('alert')).map((alert) => alert.textContent),
+  ).toEqual(['担当者名を入力してください', '否決の理由を入力してください'])
+})
+
+test('「審査中にする」を担当者名なしで押したときも、担当者名の欄の下に誤りを出す', async () => {
+  const user = userEvent.setup()
+  changeStatusMock.mockResolvedValue({
+    kind: 'inputError',
+    errors: [{ field: 'staffName', message: '担当者名を入力してください' }],
+  })
+  renderForm('APPLIED')
+
+  await user.click(screen.getByRole('button', { name: '審査中にする' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    '担当者名を入力してください',
+  )
+  expect(screen.getByLabelText('担当者名')).toHaveAccessibleDescription(
+    '担当者名を入力してください',
+  )
+})
+
+test('審査の結果を選んだら、その欄の誤りを消し、ほかの欄の誤りは残す', async () => {
+  const user = userEvent.setup()
+  changeStatusMock.mockResolvedValue({
+    kind: 'inputError',
+    errors: [...NOTHING_ENTERED],
+  })
   renderForm('UNDER_REVIEW')
   await user.click(screen.getByRole('button', { name: '決定する' }))
+  await screen.findByText(NO_DECISION)
 
   await user.click(screen.getByRole('radio', { name: '承認' }))
 
   expect(screen.queryByText(NO_DECISION)).not.toBeInTheDocument()
+  expect(screen.getByText('担当者名を入力してください')).toBeInTheDocument()
 })
 
 test('「否決」を選んで「決定する」を押すと、入力のままの値と、詳細の版を文字列にして送る', async () => {
