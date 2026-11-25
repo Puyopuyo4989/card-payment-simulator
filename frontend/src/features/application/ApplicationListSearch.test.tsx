@@ -152,3 +152,95 @@ test('該当なしのときは「該当する申込はありません」を出�
   expect(screen.queryByRole('button', { name: '次へ' })).not.toBeInTheDocument()
   expect(screen.queryByText(/ページ$/)).not.toBeInTheDocument()
 })
+
+const KEYWORD_ERROR = 'キーワードは50文字以内で入力してください'
+const PAGE_ERROR = 'ページは1以上の半角数字で指定してください'
+
+function inputError(
+  ...fields: ('keyword' | 'page')[]
+): ApiOutcome<ListResult, 'status' | 'keyword' | 'page'> {
+  return {
+    kind: 'inputError',
+    errors: fields.map((field) => ({
+      field,
+      message: field === 'keyword' ? KEYWORD_ERROR : PAGE_ERROR,
+    })),
+  }
+}
+
+test('キーワードの誤りは、キーワードの欄の下に赤字で出し、前の表は消さない', async () => {
+  const user = userEvent.setup()
+  render(<ApplicationList onSelect={vi.fn()} />)
+  await screen.findByRole('table')
+
+  listMock.mockResolvedValue(inputError('keyword'))
+  const input = screen.getByRole('textbox', { name: 'キーワード' })
+  await user.type(input, `${'ア'.repeat(51)}{Enter}`)
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(KEYWORD_ERROR)
+  expect(input).toHaveAttribute('aria-invalid', 'true')
+  expect(input).toHaveAccessibleDescription(KEYWORD_ERROR)
+  // 予期しないエラーにはしない。前の表とページの切り替えは残す
+  expect(
+    screen.queryByText('一覧を読み込めませんでした。もう一度お試しください'),
+  ).not.toBeInTheDocument()
+  expect(screen.getByRole('table')).toBeInTheDocument()
+  expect(screen.getByText('1 / 2 ページ')).toBeInTheDocument()
+})
+
+test('ページの誤りは、ページの切り替えの下に赤字で出し、前の表は消さない', async () => {
+  const user = userEvent.setup()
+  render(<ApplicationList onSelect={vi.fn()} />)
+  await screen.findByRole('table')
+
+  listMock.mockResolvedValue(inputError('page'))
+  await user.click(screen.getByRole('button', { name: '次へ' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(PAGE_ERROR)
+  expect(
+    screen.getByRole('navigation', { name: 'ページ' }),
+  ).toHaveAccessibleDescription(PAGE_ERROR)
+  expect(screen.getByRole('table')).toBeInTheDocument()
+})
+
+test('キーワードとページの誤りが同時に来たら、両方を画面の順に出す', async () => {
+  const user = userEvent.setup()
+  render(<ApplicationList onSelect={vi.fn()} />)
+  await screen.findByRole('table')
+
+  listMock.mockResolvedValue(inputError('page', 'keyword'))
+  await user.click(screen.getByRole('button', { name: '次へ' }))
+
+  const alerts = await screen.findAllByRole('alert')
+  expect(alerts.map((alert) => alert.textContent)).toEqual([
+    KEYWORD_ERROR,
+    PAGE_ERROR,
+  ])
+})
+
+test('誤りのあとに検索し直して読めたら、誤りを消す', async () => {
+  const user = userEvent.setup()
+  render(<ApplicationList onSelect={vi.fn()} />)
+  await screen.findByRole('table')
+  listMock.mockResolvedValue(inputError('keyword'))
+  const input = screen.getByRole('textbox', { name: 'キーワード' })
+  await user.type(input, `${'ア'.repeat(51)}{Enter}`)
+  await screen.findByRole('alert')
+
+  listMock.mockResolvedValue(page(1, 1))
+  await user.clear(input)
+  await user.type(input, 'タロウ{Enter}')
+
+  expect(await screen.findByText('1 / 1 ページ')).toBeInTheDocument()
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(input).not.toHaveAttribute('aria-invalid')
+})
+
+test('最初の読み込みで入力の誤りが来たときは、誤りだけを出す（表はない）', async () => {
+  listMock.mockResolvedValue(inputError('keyword'))
+  render(<ApplicationList onSelect={vi.fn()} />)
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(KEYWORD_ERROR)
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  expect(screen.queryByText('読み込み中です')).not.toBeInTheDocument()
+})

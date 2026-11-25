@@ -5,6 +5,7 @@ import type {
   ApplicationStatus,
   CardApplicationRequest,
   FieldError,
+  ListField,
   RegistrationField,
   StatusChangeField,
   StatusChangeRequest,
@@ -28,7 +29,7 @@ export function register(
 export function list(
   status: ApplicationStatus | '' = '',
   search?: ListSearch,
-): Promise<ApiOutcome<ApplicationList, 'status'>> {
+): Promise<ApiOutcome<ApplicationList, ListField>> {
   const params = new URLSearchParams()
   if (status) {
     params.set('status', status)

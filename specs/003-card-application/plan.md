@@ -138,7 +138,7 @@ frontend/src/
         ├── ApplicationList.tsx               # 状態の絞り込み・表・0件のメッセージ。【S】キーワード・ページ
         ├── ApplicationForm.tsx               # 6項目と注意書き
         ├── ApplicationDetail.tsx             # 全項目・変更履歴・404
-        ├── StatusChangeForm.tsx              # 担当者名・否決の理由・許されるボタンだけ・409
+        ├── StatusChangeForm.tsx              # 担当者名・許される変更だけ（申込：「審査中にする」、審査中：承認・否決のラジオボタンと「決定する」）・否決のときだけ理由・成功の知らせ・409
         └── *.test.tsx / *.test.ts            # テストは対象のファイルの隣に置く
 ```
 

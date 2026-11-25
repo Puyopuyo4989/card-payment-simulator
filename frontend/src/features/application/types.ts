@@ -36,6 +36,9 @@ export type ApplicationList = {
   totalItems?: number
 }
 
+/** 一覧の API が誤りを返す項目（contracts 2・6）。keyword・page は【Should】 */
+export type ListField = 'status' | 'keyword' | 'page'
+
 /** 変更履歴の1行（contracts 3）。否決でない行の rejectionReason は null */
 export type StatusHistory = {
   changedAt: string
