@@ -11,10 +11,11 @@
 
 ## ./mvnw verify でテスト用の JVM が止まったとき
 
-`./mvnw verify` が、テストの失敗ではなく、テスト用の JVM が途中で止まったことで失敗することがある（2026-11-24 に1回。原因は未調査）。出るメッセージは、たとえば `The forked VM terminated without properly saying goodbye`、`ExecutionException`、`See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream`。
+`./mvnw verify` が、テストの失敗ではなく、テスト用の JVM が途中で止まったことで失敗することがある（2026-11-24 に1回。原因は、アプリを動かしたままだったことによるメモリ不足が有力（確定ではない））。出るメッセージは、たとえば `The forked VM terminated without properly saying goodbye`、`ExecutionException`、`See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream`。
 
 今は直さない。次に起きたときに、原因を調べるための証拠を残す。
 
+- `./mvnw verify` の前に、起動しているアプリ（`spring-boot:run`・`npm run dev`）を止める。動かしたままだとメモリが足りなくなるおそれがある
 - 失敗したら、**`./mvnw clean` も `./mvnw clean verify` の再実行もする前に**、次を実行する。clean すると `target/` ごと証拠が消える
 
   ```bash

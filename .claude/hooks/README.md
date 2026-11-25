@@ -63,6 +63,8 @@ deny ルールには「`.env.*` のうち `.env.example` だけ除く」とい�
 - **git hooks の別の回避方法**: `GIT_CONFIG_COUNT` / `GIT_CONFIG_PARAMETERS` などの環境変数による設定の上書き、`.git/config` の直接の編集、`.git/hooks` の中のファイルの削除や書き換え
 - **ワイルドカード・パターン指定**: `cat .e*`、`cat .en?`、`cat */.env*` のように、シェルが展開して初めて `.env` になるもの
 - **別のコマンドでの同等操作**: `rsync --delete`、`shred`、`truncate`、`dd`、`mv x /dev/null`、`git branch -D`、`git stash drop`、`git checkout -f <ブランチ>` など
+- **作業ツリー全体を別の書き方で指す git restore / checkout**: `git restore '**'`、`git checkout -- '*.java'`、サブディレクトリからの `git restore ../..`、絶対パスでリポジトリの根を指す形（止めるのは `.`・`./`・`..`・`:/`・`*` などの決まった指定だけ）
+- **パスを付けずに変更を捨てる操作**: `git checkout -f`、`git switch --discard-changes` / `-f`（まだコミットしていない変更がすべて消える）
 - **ディレクトリ単位の検索**: `Grep` でディレクトリ全体を検索した場合、中の `.env` の内容がヒットする可能性がある
 - **hook 自体の無効化**: `.claude/settings.json` やこのスクリプトを書き換えれば止められる
 
