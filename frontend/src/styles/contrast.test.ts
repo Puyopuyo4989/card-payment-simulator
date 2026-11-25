@@ -61,6 +61,12 @@ const PAIRS: [string, string, number, string][] = [
     TEXT,
     '選んでいないタブ（マウスを重ねたとき）',
   ],
+  [
+    '--color-primary',
+    '--color-row-alt',
+    TEXT,
+    '申込の一覧の申込番号のボタン（1行おきの行）',
+  ],
   ['--color-error', '--color-error-bg', TEXT, '入力エラーの赤字'],
   ['--color-error', '--color-surface', TEXT, '入力エラーの入力欄の枠'],
   ['--color-border-strong', '--color-surface', NON_TEXT, '入力欄の枠'],
