@@ -56,4 +56,16 @@ public record CardApplicationDetailResponse(
                                         entry.rejectionReason()))
                         .toList());
     }
+
+    /** 個人情報と、履歴の担当者名・否決の理由を出さない（research.md R11-1 の4）。 */
+    @Override
+    public String toString() {
+        return "CardApplicationDetailResponse[applicationNumber="
+                + applicationNumber
+                + ", status="
+                + status
+                + ", version="
+                + version
+                + "]";
+    }
 }

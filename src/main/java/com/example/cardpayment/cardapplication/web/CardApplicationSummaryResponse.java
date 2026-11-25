@@ -15,4 +15,14 @@ public record CardApplicationSummaryResponse(
                 application.status(),
                 application.appliedAt());
     }
+
+    /** 氏名を出さない（research.md R11-1 の4）。 */
+    @Override
+    public String toString() {
+        return "CardApplicationSummaryResponse[applicationNumber="
+                + applicationNumber
+                + ", status="
+                + status
+                + "]";
+    }
 }

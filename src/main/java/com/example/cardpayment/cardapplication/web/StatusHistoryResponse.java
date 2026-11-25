@@ -9,4 +9,11 @@ public record StatusHistoryResponse(
         ApplicationStatus fromStatus,
         ApplicationStatus toStatus,
         String staffName,
-        String rejectionReason) {}
+        String rejectionReason) {
+
+    /** 担当者名と否決の理由を出さない（research.md R11-1 の4）。 */
+    @Override
+    public String toString() {
+        return "StatusHistoryResponse[" + fromStatus + " -> " + toStatus + "]";
+    }
+}

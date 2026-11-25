@@ -239,6 +239,7 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 - [x] T059 [US3] `{fe}/StatusChangeForm.tsx` を作る（どのボタンを出すかは `statusLabels.ts` で決める。フロントは遷移の正しさを判定しない）。T057 が green になる
 - [x] T060 [US3] `{fe}/ApplicationDetail.tsx` に `StatusChangeForm` を組み込み、成功のときの置き換えと、ぶつかったときの読み直しを足す。T058 が green になる
   - 2026-11-25：T057 に、(a) 「審査中にする」は否決の理由を空で送る、(b) 変更後の状態（遷移の誤り）と版のエラーは入力欄がないのでフォームの上に出す、(c) 予期しないエラーのメッセージ、(d) もう一度押すとき前のメッセージを消す、を足した。「承認する」「否決する」が並ぶので、`index.css` の `.form-actions` にボタンの間のすき間（`gap`）を足した（ボタンが1つの既存のフォームの見た目は変わらない）
+  - 2026-11-25：PR 前のコードレビューで、実行が終わったときにフォーカスを戻す先がいつも1つ目のボタン（「承認する」）だったことが分かった。「否決する」のあと入力エラーが返ると、フォーカスが「承認する」に移り、続けて Enter を押すと承認されてしまう（取り消せない）。T057 に「承認する・否決する のどちらでも、押したボタンにフォーカスを戻す」テストを足し、「否決する」が red になることを確かめてから、押したボタンを覚えて戻す形に直した
 
 **Checkpoint**: まとまり B が終わり。quickstart.md 5 の #1〜#14 を確かめられる。**Must はここまで。**
 
@@ -266,7 +267,26 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 - [ ] T065 [US4] `CardApplicationService` に `search` を、`CardApplicationListResponse` に `page`・`totalPages`・`totalItems` を、`CardApplicationController` の一覧に `keyword`・`page` のパラメーターとそのチェック（contracts 6 のメッセージ）を足す。T062 が green になり、Must の一覧のテスト（T023）も green のまま
 - [ ] T066 [US4] `{fe}/api.ts` の `list` に `keyword`・`page` を、`{fe}/types.ts` に3つの項目を、`{fe}/ApplicationList.tsx` にキーワードの入力欄とページの切り替えを足す。T063 が green になり、T053 も green のまま
 
-**Checkpoint**: quickstart.md 7 を確かめられる。
+### 画面の直し（Must の PR の前に見つけたもの。2026-11-25 に足した）
+
+Must の画面の目視（ユーザー、T072）と、PR 前のコードレビュー（pre-pr-check の 5）で見つかったもの。どれも Must の PR では直さず、Should で直すとユーザーが決めた。キーワード検索・ページ分け（T061〜T066）とは別のことなので、それを外すときも、こちらは残してよい（逆も同じ）。どのタスクも、先にテストを書いて red を確かめる（見た目だけの直しで jsdom では確かめられないものは、直す前と後に画面で確かめ、その結果をタスクの下に記録する）。
+
+**目視で見つけたもの（既知の4件）**
+
+- [ ] T076 [P] [US2] 一覧の「新規登録」ボタンと、「状態」の絞り込みの行の間にすき間を空ける（`{fe}/ApplicationPage.tsx`・`frontend/src/index.css`）。すき間は `tokens.css` の `--space-*` を使い、新しい値を作らない
+- [ ] T077 [P] [US2] 申込の詳細の項目の値を、年収も含めてすべて左寄せにし、ラベルの列の幅をそろえる（登録のフォームと同じ形。`--form-label-width` と同じ考え方）。返済表と、分割払い・リボ払いの要約（`InstallmentSummary.tsx`・`RevolvingSummary.tsx` の `.summary`）の右寄せは変えない。原因は `.summary > div` の `justify-content: space-between` なので、`.summary` そのものは変えず、詳細の `dl`（`{fe}/ApplicationDetail.tsx`）にだけ別のクラスを付ける。分割払い・リボ払いの画面が変わらないことも画面で確かめる
+- [ ] T078 [P] [US3] ほかの担当者とぶつかったとき（409）、`title`「ほかの担当者が先に状態を変えました」も画面に出す（いまは `detail` だけ。contracts 4）。`{fe}/api.ts` の `conflict` に `title` を持たせ（本文にないときは決まった文）、`{fe}/StatusChangeForm.tsx` で `title` と `detail` を出す。先に `api.test.ts`・`StatusChangeForm.test.tsx` に、`title` が出ることのテストを足す
+- [ ] T079 [P] [US2] 幅 360px のとき、変更履歴の表を横にスクロールさせ、変更日時・「変更前 → 変更後」・担当者名は言葉の途中で折り返さない（`{fe}/ApplicationDetail.tsx`・`frontend/src/index.css`）。否決の理由の列は折り返してよい。返済表（`.schedule-table`・`.table-wrap`）の見た目は変えない。一覧の表も同じように見え方を確かめる
+
+**レビューで見つけたもの（Minor 2〜6）**
+
+- [ ] T080 [P] [US3] 否決の理由（500文字まで）の入力欄を、1行の `<input type="text">` から `<textarea>` にする（`{fe}/StatusChangeForm.tsx`）。ラベル・`aria-invalid`・`aria-describedby`・エラーの表示は今と同じにする。先に `StatusChangeForm.test.tsx` に、理由の欄が複数行の入力欄（`textbox` で `<textarea>`）であることのテストを足す
+- [ ] T081 [US3] 承認・否決を押し間違えたときの守りを足す。いまは、理由を入れたまま「承認する」を押すと、理由は保存されずに捨てられ（contracts 4 のとおり）、取り消せない承認・否決に確認もない。やり方（確認のダイアログを出す、または否決を選んだときだけ理由の欄を出す、など）は、着手の前に人が決める。決めたやり方で、先に `StatusChangeForm.test.tsx` にテストを足す
+- [ ] T082 `common/web/ApiExceptionHandler.java` が、機能のパッケージ（`cardapplication.service`）の例外（`ApplicationNotFoundException`・`StatusConflictException`）を import している。依存の向きが共通 → 機能と逆なので、機能ごとの `@RestControllerAdvice`（`{main}/{ca}/web/` に置く）に分けるか、共通の例外の型を作る（どちらにするかは着手の前に決める。plan.md の構成の文も合わせて直す）。`CardApplicationApiTest` の 404・409 のテストと、分割払い・リボ払いの API のテストが、変えずに green のままであること
+- [ ] T083 [P] [US2] 一覧と詳細の読み込み中に、読み込み中であることが分かる表示を出す（`{fe}/ApplicationList.tsx`・`{fe}/ApplicationDetail.tsx`。いまは、詳細は「一覧に戻る」ボタンだけ、一覧は表がまだない）。先に、API の応答を待たせたまま表示を確かめるテストを足す。読み込みが終わったら消えることも確かめる
+- [ ] T084 [US3] ほかの担当者とぶつかった（409）あとの読み直しが失敗したとき、詳細の画面全体を「詳細を読み込めませんでした」に変えず、今の詳細と 409 のメッセージを残したまま、読み直せなかったことを知らせる（`{fe}/ApplicationDetail.tsx`）。先に `ApplicationDetail.test.tsx` に、2回目の `getDetail` が `unexpectedError` のときのテストを足す
+
+**Checkpoint**: quickstart.md 7 を確かめられる。T076〜T084 を直したときは、quickstart.md 5 の画面の確認（特に #1・#3・#7・#12・#14）をもう一度行う。
 
 ---
 
@@ -274,12 +294,19 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 **Purpose**: 仕上げと、PR を出す前の確認（原則VI）。
 
-- [ ] T067 [P] 金額（年収）に `double`・`float`・`int` を使っていないことを確かめる：自作スキル①（money-calc-review）で `src/main/java` と `frontend/src` 全体を確かめる。年収は `BigDecimal` で、比べるのは `compareTo`、`new BigDecimal` の引数は文字列だけ、丸めはない（原則III、R5）。結果をこのタスクの下に記録する
-- [ ] T068 [P] タイムゾーンの決まりを確かめる：`grep -rnE 'LocalDate\.now\(|LocalDateTime\.now\(|ZonedDateTime\.now\(|Instant\.now\(\)|ZoneId\.systemDefault|TimeZone\.getDefault' src/main/java` が何も出さない。`Asia/Tokyo` が `BusinessTime.java` の1か所だけにある。フロントの日時の表示がすべて `formatDateTime`（`timeZone: 'Asia/Tokyo'`）を通っている（R10）。結果をこのタスクの下に記録する
-- [ ] T069 [P] 個人情報をログ・例外に出さない決まりを確かめる（R11-1）：(1) `grep -rnE '\blog(ger)?\.|System\.(out|err)|printStackTrace' src/main/java/com/example/cardpayment/cardapplication` が何も出さない、(2) `grep -rn 'new [A-Za-z]*Exception(' src/main/java/com/example/cardpayment/cardapplication` で出た行を全部読み、引数に入力の値（氏名・生年月日・年収・勤務先名・電話番号・担当者名・理由）を入れていない、(3) `grep -rnE 'console\.' frontend/src --include='*.ts' --include='*.tsx' | grep -v '\.test\.'` が何も出さない、(4) `application.properties` に `log-request-details`・`logging.level.org.springframework.web`・アクセスログの設定がない、(5) contracts のメッセージの一覧に、入力を埋め込む文がない。結果をこのタスクの下に記録する
-- [ ] T070 [P] カード番号と本物の個人情報が入っていないことを確かめる（原則IV）：`git diff main --stat` の全ファイルで、テスト・例の値が research.md R11 の架空の値だけであること、カード番号の形（13〜19桁の数字の並び）がないことを読んで確かめる。結果をこのタスクの下に記録する
-- [ ] T071 起動しているアプリ（`spring-boot:run`・`npm run dev`）を止めてから、`./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II）。結果（件数・カバレッジ）をこのタスクの下に記録する。テスト用の JVM が途中で止まったときは、`clean` の前に CLAUDE.md の手順で証拠を残し、人に報告する
-- [ ] T072 [quickstart.md](quickstart.md) の 1〜5（Should を作ったときは 7 も）を上から順に行う。SC-001・SC-002・SC-006 と、画面の #1〜#14 は人が確かめる。結果をこのタスクの下に記録する
+- [x] T067 [P] 金額（年収）に `double`・`float`・`int` を使っていないことを確かめる：自作スキル①（money-calc-review）で `src/main/java` と `frontend/src` 全体を確かめる。年収は `BigDecimal` で、比べるのは `compareTo`、`new BigDecimal` の引数は文字列だけ、丸めはない（原則III、R5）。結果をこのタスクの下に記録する
+  - 2026-11-25（pre-pr-check の 3a）：スキル①の確認1〜6はすべて通過で、違反0件・要確認0件。年収は `NewCardApplication`・`CardApplication`・`CardApplicationDetailResponse` で `BigDecimal`、DB から `rs.getBigDecimal`、入力は `new BigDecimal(annualIncomeText)`（文字列）、上限 `MAX_ANNUAL_INCOME = new BigDecimal("9999")` と `compareTo` で比べる。`cardapplication` に丸め・`intValue()`・`equals` での金額の比較はない。フロントは `formatManYen` で表示するだけで、入力は文字列のまま送る。丸めは 001・002 の既存の4か所（`InstallmentCalculator.java:30・59・84`、`RevolvingCalculator.java:66`）だけで、どれも `divide(…, 0, RoundingMode.DOWN)`
+- [x] T068 [P] タイムゾーンの決まりを確かめる：`grep -rnE 'LocalDate\.now\(|LocalDateTime\.now\(|ZonedDateTime\.now\(|Instant\.now\(\)|ZoneId\.systemDefault|TimeZone\.getDefault' src/main/java` が何も出さない。`Asia/Tokyo` が `BusinessTime.java` の1か所だけにある。フロントの日時の表示がすべて `formatDateTime`（`timeZone: 'Asia/Tokyo'`）を通っている（R10）。結果をこのタスクの下に記録する
+  - 2026-11-25：grep に出たのは `BusinessTime.java:13` のコメント（「使わない」と書いた行）だけで、コードにはない。`Asia/Tokyo` は `BusinessTime.java:17`（`ZoneId.of("Asia/Tokyo")`）の1か所だけ。フロントの日時は `ApplicationList.tsx`・`ApplicationDetail.tsx` とも `formatDateTime` を通している（`shared/formatDateTime.ts` が `timeZone: 'Asia/Tokyo'`）
+- [x] T069 [P] 個人情報をログ・例外に出さない決まりを確かめる（R11-1）：(1) `grep -rnE '\blog(ger)?\.|System\.(out|err)|printStackTrace' src/main/java/com/example/cardpayment/cardapplication` が何も出さない、(2) `grep -rn 'new [A-Za-z]*Exception(' src/main/java/com/example/cardpayment/cardapplication` で出た行を全部読み、引数に入力の値（氏名・生年月日・年収・勤務先名・電話番号・担当者名・理由）を入れていない、(3) `grep -rnE 'console\.' frontend/src --include='*.ts' --include='*.tsx' | grep -v '\.test\.'` が何も出さない、(4) `application.properties` に `log-request-details`・`logging.level.org.springframework.web`・アクセスログの設定がない、(5) contracts のメッセージの一覧に、入力を埋め込む文がない。結果をこのタスクの下に記録する
+  - 2026-11-25：(1) 何も出ない。(2) 出た12行を全部読んだ。引数は申込番号（`ApplicationNotFoundException`・`StatusConflictException`）、遷移の理由と状態（`StatusTransitionException`）、決まった文（`InputValidationException`・`IllegalArgumentException("否決には理由が要ります")`）だけで、入力の値はない。(3) 何も出ない。(4) どれもない。(5) contracts 4 の `title`・`detail`・`errors[].message` はすべて決まった文
+  - 2026-11-25：PR 前のコードレビューで、`*Response` の `toString` が record の既定のままで個人情報が出ることが分かった（守りは (4) の設定だけだった）。`PersonalDataToStringTest` にテストを3つ足して red を確かめてから、`CardApplicationDetailResponse`・`CardApplicationSummaryResponse`・`StatusHistoryResponse` の `toString` を上書きした。research.md R11-1 の4 の対象にも `*Response` を足した
+- [x] T070 [P] カード番号と本物の個人情報が入っていないことを確かめる（原則IV）：`git diff main --stat` の全ファイルで、テスト・例の値が research.md R11 の架空の値だけであること、カード番号の形（13〜19桁の数字の並び）がないことを読んで確かめる。結果をこのタスクの下に記録する
+  - 2026-11-25：差分の足した行で13桁以上の数字の並びは、入力のあふれを確かめるテストの値（21桁の `123456789012345678901`）だけで、カード番号ではない。氏名・勤務先・担当者名・理由・電話番号の例は「テスト 太郎」「見本 花子」「テスト株式会社」「テスト 担当A」「テスト用の否決理由」「0000000000」など R11 の架空の値だけ。カード番号の入力欄はなく、`ApplicationForm.test.tsx` の「カード番号の入力欄はない」で確かめている
+- [x] T071 起動しているアプリ（`spring-boot:run`・`npm run dev`）を止めてから、`./mvnw verify` で、全テストが通り、行・分岐カバレッジがバックエンド・フロントエンドとも90%以上であることを確かめる（原則II）。結果（件数・カバレッジ）をこのタスクの下に記録する。テスト用の JVM が途中で止まったときは、`clean` の前に CLAUDE.md の手順で証拠を残し、人に報告する
+  - 2026-11-25（PR 前のレビューの指摘を直したあと）：起動しているアプリがないことを確かめてから実行し、BUILD SUCCESS。テストはバックエンド 976件・フロント 184件で、失敗0件。行・分岐カバレッジは、バックエンド 555/555・188/188、フロント 209/209・111/111（どちらも100%）。新しい除外はない。Spotless・Prettier も通った。JVM は止まらなかった
+- [x] T072 [quickstart.md](quickstart.md) の 1〜5（Should を作ったときは 7 も）を上から順に行う。SC-001・SC-002・SC-006 と、画面の #1〜#14 は人が確かめる。結果をこのタスクの下に記録する
+  - 2026-11-25：画面の目視（quickstart 5。Phase 8 の報告の手順 #1〜#16）は、ユーザーが済ませた。見た目の Minor 4件が見つかり、Must の PR では直さず、Phase 9 の T076〜T079 に足した。1（verify）は T071 のとおり。2（Flyway の V2）・3（jar の起動）・4（curl で API）は、行ったかどうかの記録がない（画面の目視のために 3 の起動はしている）。7 は Should を作っていないので行っていない
 - [ ] T073 PR を出す前に、スキル②（pre-pr-check）を使い、結果の一覧を PR の説明文に貼る（CLAUDE.md）。AI の出力を人が確かめた結果は、人が `docs/ai-review-log.md` に記録する
 - [ ] T074 main に入ったあと、EC2 で quickstart.md 6 を確かめる（Flyway の V2 の適用、日本時間の表示、ログに個人情報がないこと。sprint-plan の Day7 のゴール）→ **判断③**
 

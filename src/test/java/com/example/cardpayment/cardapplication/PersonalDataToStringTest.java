@@ -6,7 +6,10 @@ import com.example.cardpayment.cardapplication.domain.ApplicationStatus;
 import com.example.cardpayment.cardapplication.domain.CardApplication;
 import com.example.cardpayment.cardapplication.domain.NewCardApplication;
 import com.example.cardpayment.cardapplication.domain.StatusHistoryEntry;
+import com.example.cardpayment.cardapplication.web.CardApplicationDetailResponse;
 import com.example.cardpayment.cardapplication.web.CardApplicationRequest;
+import com.example.cardpayment.cardapplication.web.CardApplicationSummaryResponse;
+import com.example.cardpayment.cardapplication.web.StatusHistoryResponse;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,6 +27,9 @@ class PersonalDataToStringTest {
     private static final String PHONE_NUMBER = "0000000000";
     private static final List<String> PERSONAL_DATA =
             List.of(NAME_KANJI, NAME_KANA, BIRTH_DATE, ANNUAL_INCOME, EMPLOYER_NAME, PHONE_NUMBER);
+
+    private static final String STAFF_NAME = "テスト 担当A";
+    private static final String REJECTION_REASON = "テスト用の否決理由";
 
     private static final Instant NOW = Instant.parse("2026-11-25T01:30:00Z");
 
@@ -85,5 +91,53 @@ class PersonalDataToStringTest {
                         "テスト用の否決理由");
 
         assertThat(entry.toString()).doesNotContain("テスト 担当A", "テスト用の否決理由");
+    }
+
+    // レスポンス。Spring MVC は DEBUG のとき本文の toString をログに書くので、設定（R11-1 の6）に加えて二重に守る
+
+    @Test
+    void 詳細のレスポンスのtoStringに個人情報と担当者名と否決の理由を出さず申込番号は出す() {
+        var response =
+                new CardApplicationDetailResponse(
+                        "A00000001",
+                        NAME_KANJI,
+                        NAME_KANA,
+                        LocalDate.parse(BIRTH_DATE),
+                        new BigDecimal(ANNUAL_INCOME),
+                        EMPLOYER_NAME,
+                        PHONE_NUMBER,
+                        ApplicationStatus.REJECTED,
+                        NOW,
+                        NOW,
+                        2,
+                        List.of(rejectedHistory()));
+
+        assertThat(response.toString())
+                .doesNotContain(PERSONAL_DATA)
+                .doesNotContain(STAFF_NAME, REJECTION_REASON)
+                .contains("A00000001");
+    }
+
+    @Test
+    void 一覧の行のレスポンスのtoStringに氏名を出さず申込番号は出す() {
+        var response =
+                new CardApplicationSummaryResponse(
+                        "A00000001", NAME_KANJI, ApplicationStatus.APPLIED, NOW);
+
+        assertThat(response.toString()).doesNotContain(NAME_KANJI).contains("A00000001");
+    }
+
+    @Test
+    void 履歴の行のレスポンスのtoStringに担当者名と否決の理由を出さない() {
+        assertThat(rejectedHistory().toString()).doesNotContain(STAFF_NAME, REJECTION_REASON);
+    }
+
+    private static StatusHistoryResponse rejectedHistory() {
+        return new StatusHistoryResponse(
+                NOW,
+                ApplicationStatus.UNDER_REVIEW,
+                ApplicationStatus.REJECTED,
+                STAFF_NAME,
+                REJECTION_REASON);
     }
 }

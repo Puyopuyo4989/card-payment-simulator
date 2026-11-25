@@ -338,7 +338,7 @@ spec の Key Entities は「申込」と「状態の変更履歴（1件の申込
 | 1 | アプリのログに、個人情報を書かない | `log.info(request)` のように、リクエスト・ドメインの型をまるごとログに渡さない。ログに書いてよいのは申込番号・状態・項目名・件数だけ。この機能では、ログを書く処理そのものを作らない（要らないため） |
 | 2 | 例外のメッセージに、入力の値を入れない | `InputValidationException`・`StatusTransitionException`・`ApplicationNotFoundException`・`StatusConflictException` のメッセージは決まった文と、申込番号・状態・項目名だけ。`"不正な電話番号: " + phone` のような書き方をしない |
 | 3 | API のエラーの本文に、入力の値を返さない | Problem Details の `title`・`detail`・`errors[].message` は、contracts のメッセージの一覧の決まった文だけ（入力を埋め込まない） |
-| 4 | 個人情報を持つ record の `toString` に、個人情報を出さない | `NewCardApplication`・`CardApplication`・`StatusHistoryEntry`・`*Request` は `toString` を上書きし、申込番号（ないものは型の名前）だけを返す。うっかりログや例外に渡しても漏れないようにする |
+| 4 | 個人情報を持つ record の `toString` に、個人情報を出さない | `NewCardApplication`・`CardApplication`・`StatusHistoryEntry`・`*Request`・`*Response`（`CardApplicationDetailResponse`・`CardApplicationSummaryResponse`・`StatusHistoryResponse`）は `toString` を上書きし、申込番号（ないものは型の名前）と状態だけを返す。うっかりログや例外に渡しても漏れないようにする。`*Response` は、Spring MVC が DEBUG のとき本文の `toString` をログに書くので、6 の設定に加えて二重に守る（2026-11-25、PR 前のレビューの指摘で足した） |
 | 5 | DB のエラーに、行の中身を入れさせない | PostgreSQL は、制約の違反のとき `DETAIL: Failing row contains (…氏名…)` のように行の値を返し、PostgreSQL の JDBC ドライバーはそれを例外のメッセージに入れる。予期しないエラー（500）のとき、Spring がそのメッセージをログに書く。ドライバーの設定 `logServerErrorDetail=false` で、DETAIL を例外のメッセージに入れないようにする（`application.properties` の `spring.datasource.hikari.data-source-properties.logServerErrorDetail=false`。テストの DB にも同じ設定が効く） |
 | 6 | リクエストの中身をログに出す設定を入れない | `spring.mvc.log-request-details`・`logging.level.org.springframework.web=DEBUG`・Tomcat のアクセスログは、既定（出さない）のまま |
 | 7 | フロントは `console.log` などで入力や API の結果を出さない | |

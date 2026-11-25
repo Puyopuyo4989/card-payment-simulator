@@ -253,3 +253,32 @@ test('もう一度押すとき、前のメッセージを消す', async () => {
 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })
+
+// 押したのと違うボタンにフォーカスが移ると、続けて Enter を押したときに逆の決定になる（取り消せない）
+test.each(['承認する', '否決する'])(
+  '「%s」のあと入力エラーが返ったら、フォーカスを押したボタンに戻す',
+  async (label) => {
+    const user = userEvent.setup()
+    let respond!: (outcome: Awaited<ReturnType<typeof changeStatus>>) => void
+    changeStatusMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        respond = resolve
+      }),
+    )
+    renderForm('UNDER_REVIEW')
+
+    await user.click(screen.getByRole('button', { name: label }))
+    const button = screen.getByRole('button', { name: label })
+    // ブラウザーは押せなくなったボタンからフォーカスを外すが、jsdom は外さないので、ここで外す
+    button.blur()
+    expect(button).not.toHaveFocus()
+
+    respond({
+      kind: 'inputError',
+      errors: [{ field: 'staffName', message: '担当者名を入力してください' }],
+    })
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(button).toHaveFocus()
+  },
+)

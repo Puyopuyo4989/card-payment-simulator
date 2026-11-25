@@ -35,6 +35,8 @@ export default function StatusChangeForm({
     StatusChangeField
   > | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // 終わったらフォーカスを戻すのは、押したボタン。ほかのボタンに戻すと、続けて Enter を押したときに逆の決定になる
+  const [pressed, setPressed] = useState<ApplicationStatus | null>(null)
   const buttonRef = useReturnFocus(submitting)
 
   const errors = outcome?.kind === 'inputError' ? outcome.errors : []
@@ -48,6 +50,7 @@ export default function StatusChangeForm({
 
   async function handleClick(toStatus: ApplicationStatus) {
     setOutcome(null)
+    setPressed(toStatus)
     setSubmitting(true)
     const result = await changeStatus(detail.applicationNumber, {
       toStatus,
@@ -118,10 +121,10 @@ export default function StatusChangeForm({
             </div>
           )}
           <div className="form-actions">
-            {actions.map((action, index) => (
+            {actions.map((action) => (
               <button
                 key={action.toStatus}
-                ref={index === 0 ? buttonRef : undefined}
+                ref={action.toStatus === pressed ? buttonRef : undefined}
                 type="button"
                 className="button"
                 disabled={submitting}
