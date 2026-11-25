@@ -161,3 +161,104 @@ test('入力のチェックはサーバーが行うので、空のままでも�
     annualRate: '',
   })
 })
+
+// 【Should】入力欄の表示（FR-015〜FR-018）
+const amountBox = () => screen.getByRole('textbox', { name: '利用金額（円）' })
+const rateBox = () => screen.getByRole('textbox', { name: '実質年率（%）' })
+
+test('利用金額は、入力中はカンマを差し込まず、フォーカスが外れたら3桁区切りにする（FR-015・FR-018）', async () => {
+  const user = userEvent.setup()
+  render(<InstallmentForm onSubmit={vi.fn()} />)
+
+  await user.type(amountBox(), '1000000')
+  expect(amountBox()).toHaveValue('1000000')
+
+  await user.tab()
+  expect(amountBox()).toHaveValue('1,000,000')
+})
+
+test('実質年率は、整数ならフォーカスが外れたら小数第1位まで表示する（FR-016）', async () => {
+  const user = userEvent.setup()
+  render(<InstallmentForm onSubmit={vi.fn()} />)
+
+  await user.type(rateBox(), '15')
+  expect(rateBox()).toHaveValue('15')
+
+  await user.tab()
+  expect(rateBox()).toHaveValue('15.0')
+})
+
+test('カンマ付きの利用金額は、カンマを取り除いて送る（利用者が入れたカンマも。FR-015・FR-017）', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<InstallmentForm onSubmit={onSubmit} />)
+
+  await user.type(amountBox(), '1,00,000')
+  await user.type(rateBox(), '15')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(amountBox()).toHaveValue('100,000')
+  expect(rateBox()).toHaveValue('15.0')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    amount: '100000',
+    paymentCount: '',
+    annualRate: '15.0',
+  })
+})
+
+test('入力欄で Enter を押して送ったときも、カンマを取り除いて送る（表示はフォーカスがあるので整えない）', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<InstallmentForm onSubmit={onSubmit} />)
+
+  await user.type(amountBox(), '100,000{Enter}')
+
+  expect(amountBox()).toHaveValue('100,000')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    amount: '100000',
+    paymentCount: '',
+    annualRate: '',
+  })
+})
+
+test.each([
+  ['abc', '15.5'],
+  ['1000.5', '12.25'],
+  ['1,000.5', 'abc'],
+  ['-1,000', '１５'],
+])(
+  '整えられない値（利用金額 %j・実質年率 %j）は、入力されたまま残して、そのまま送る（API がエラーにする）',
+  async (amount, rate) => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    render(<InstallmentForm onSubmit={onSubmit} />)
+
+    await user.type(amountBox(), amount)
+    await user.type(rateBox(), rate)
+    await user.click(screen.getByRole('button', { name: '計算する' }))
+
+    expect(amountBox()).toHaveValue(amount)
+    expect(rateBox()).toHaveValue(rate)
+    expect(onSubmit).toHaveBeenLastCalledWith({
+      amount,
+      paymentCount: '',
+      annualRate: rate,
+    })
+  },
+)
+
+test('大きな桁の利用金額も、丸めずにカンマを付け、カンマを取り除いて送る（数に変えない）', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<InstallmentForm onSubmit={onSubmit} />)
+
+  await user.type(amountBox(), '12345678901234567890')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(amountBox()).toHaveValue('12,345,678,901,234,567,890')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    amount: '12345678901234567890',
+    paymentCount: '',
+    annualRate: '',
+  })
+})

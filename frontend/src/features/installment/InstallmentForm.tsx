@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { fieldErrors } from '../../shared/fieldErrors'
 import { useReturnFocus } from '../../shared/useReturnFocus'
+import { amountForApi, formatAmountInput, formatRateInput } from './inputFormat'
 import type { FieldError, InstallmentSimulationRequest } from './types'
 
 /** 支払回数の選択肢（FR-003） */
@@ -28,6 +29,8 @@ type Props = {
 
 /**
  * 入力フォーム。入力のチェックはサーバーが行うので、入力されたままの文字列を渡す（research.md R8）。
+ * 【Should】ただし利用金額のカンマは取り除いて渡し、フォーカスが外れたときに表示を整える（FR-015〜FR-018、inputFormat.ts）。
+ * 整えられない値は、入力されたまま渡す（チェックはサーバー）。
  * エラーの表示とフォーカスを戻す処理は、リボ払いと共通（shared/fieldErrors・shared/useReturnFocus）
  */
 export default function InstallmentForm({
@@ -44,7 +47,8 @@ export default function InstallmentForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    onSubmit({ amount, paymentCount, annualRate })
+    // 【Should】利用金額は、表示のカンマを取り除いて送る（FR-015・FR-017）。ほかは入力されたまま
+    onSubmit({ amount: amountForApi(amount), paymentCount, annualRate })
   }
 
   return (
@@ -57,6 +61,8 @@ export default function InstallmentForm({
           inputMode="numeric"
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
+          // 【Should】入力中はカンマを差し込まず、フォーカスが外れたときに整える（FR-015・FR-018）
+          onBlur={() => setAmount(formatAmountInput)}
           {...errorAttributes('amount')}
         />
         {errorMessage('amount')}
@@ -86,6 +92,7 @@ export default function InstallmentForm({
           inputMode="decimal"
           value={annualRate}
           onChange={(event) => setAnnualRate(event.target.value)}
+          onBlur={() => setAnnualRate(formatRateInput)}
           {...errorAttributes('annualRate')}
         />
         {errorMessage('annualRate')}
