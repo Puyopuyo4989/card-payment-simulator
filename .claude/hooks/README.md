@@ -23,6 +23,7 @@
 | 強制 push | `git push --force` / `-f` / `--force-with-lease`, `git push origin +main` |
 | 変更の破棄 | `git reset --hard` |
 | 未追跡ファイルの削除 | `git clean -f` / `-fd` / `-fdx` / `--force` |
+| 作業ツリー全体をまとめて戻す | `git restore .` / `git restore --staged --worktree .` / `git checkout .` / `git checkout -- .` / `git checkout HEAD -- .`（`.`・`./`・`:/`・`*` などを全体の指定とみなす。ファイルやディレクトリを指定して戻すのと、作業ツリーを変えない `git restore --staged .` は許可） |
 | git hooks の回避 | `git commit --no-verify` / `-n` / `-anm`, `git push --no-verify`（`git push -n` は `--dry-run` なので許可）, `--no-veri` / `--no-verif` などの省略形 |
 | lefthook を飛ばす環境変数 | `LEFTHOOK=0` / `LEFTHOOK=false` / `LEFTHOOK_EXCLUDE=...` / `LEFTHOOK_CONFIG=...` / `LEFTHOOK_BIN=...` を付けた `git commit` / `git push`, `export LEFTHOOK=0`（表示を変えるだけの `LEFTHOOK_OUTPUT` / `LEFTHOOK_VERBOSE` と `LEFTHOOK=1` は許可） |
 | hook の置き場所の変更 | `git -c core.hooksPath=...`, `git --config-env=core.hooksPath=...`, `git config core.hooksPath ...` / `set` / `--unset` / `unset`（読むだけの `git config --get core.hooksPath` は許可） |
@@ -61,7 +62,9 @@ deny ルールには「`.env.*` のうち `.env.example` だけ除く」とい�
 - **git のエイリアス・設定**: `git config alias.fp "push --force"` → `git fp`、`git -c alias.x=...`、`push.default` などの設定による挙動
 - **git hooks の別の回避方法**: `GIT_CONFIG_COUNT` / `GIT_CONFIG_PARAMETERS` などの環境変数による設定の上書き、`.git/config` の直接の編集、`.git/hooks` の中のファイルの削除や書き換え
 - **ワイルドカード・パターン指定**: `cat .e*`、`cat .en?`、`cat */.env*` のように、シェルが展開して初めて `.env` になるもの
-- **別のコマンドでの同等操作**: `rsync --delete`、`shred`、`truncate`、`dd`、`mv x /dev/null`、`git checkout -- .`、`git branch -D` など
+- **別のコマンドでの同等操作**: `rsync --delete`、`shred`、`truncate`、`dd`、`mv x /dev/null`、`git branch -D`、`git stash drop`、`git checkout -f <ブランチ>` など
+- **作業ツリー全体を別の書き方で指す git restore / checkout**: `git restore '**'`、`git checkout -- '*.java'`、サブディレクトリからの `git restore ../..`、絶対パスでリポジトリの根を指す形（止めるのは `.`・`./`・`..`・`:/`・`*` などの決まった指定だけ）
+- **パスを付けずに変更を捨てる操作**: `git checkout -f`、`git switch --discard-changes` / `-f`（まだコミットしていない変更がすべて消える）
 - **ディレクトリ単位の検索**: `Grep` でディレクトリ全体を検索した場合、中の `.env` の内容がヒットする可能性がある
 - **hook 自体の無効化**: `.claude/settings.json` やこのスクリプトを書き換えれば止められる
 

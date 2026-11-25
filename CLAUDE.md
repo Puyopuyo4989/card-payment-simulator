@@ -4,16 +4,18 @@
 
 - hook や権限の設定で操作が止められたときは、別の書き方で回避しない。作業を止めて、止められた理由と、やりたかったことを人に報告し、判断を仰ぐ
 - ファイルの編集は Edit・Write ツールで行い、Bash（ヒアドキュメント、python、sed など）でファイルを書き換えない
-  - ただし、git restore・git checkout でコミット済みの状態に戻すのはよい（戻した先は、すでにチェックを通った状態だから）
+  - ただし、git restore・git checkout で、**ファイルを指定して**コミット済みの状態に戻すのはよい（例：`git restore src/Foo.java`。戻した先は、すでにチェックを通った状態だから）
+  - `git restore .`・`git checkout .`・`git checkout -- .` のように、まとめて戻す操作はしない。まだコミットしていない変更が消える。必要なときは作業を止めて、人に聞く（`.claude/hooks/guard_dangerous_ops.py` でも止めている）
   - 理由：hook の判定と、PostToolUse の自動フォーマット・テストが正しく働くようにするため
 - PR を出す前には、必ずスキル②（pre-pr-check）を使い、その結果の一覧を PR の説明文に貼る
 
 ## ./mvnw verify でテスト用の JVM が止まったとき
 
-`./mvnw verify` が、テストの失敗ではなく、テスト用の JVM が途中で止まったことで失敗することがある（2026-11-24 に1回。原因は未調査）。出るメッセージは、たとえば `The forked VM terminated without properly saying goodbye`、`ExecutionException`、`See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream`。
+`./mvnw verify` が、テストの失敗ではなく、テスト用の JVM が途中で止まったことで失敗することがある（2026-11-24 に1回。原因は、アプリを動かしたままだったことによるメモリ不足が有力（確定ではない））。出るメッセージは、たとえば `The forked VM terminated without properly saying goodbye`、`ExecutionException`、`See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream`。
 
 今は直さない。次に起きたときに、原因を調べるための証拠を残す。
 
+- `./mvnw verify` の前に、起動しているアプリ（`spring-boot:run`・`npm run dev`）を止める。動かしたままだとメモリが足りなくなるおそれがある
 - 失敗したら、**`./mvnw clean` も `./mvnw clean verify` の再実行もする前に**、次を実行する。clean すると `target/` ごと証拠が消える
 
   ```bash
