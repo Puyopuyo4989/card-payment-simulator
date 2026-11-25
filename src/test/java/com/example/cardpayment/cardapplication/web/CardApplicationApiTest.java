@@ -218,8 +218,9 @@ class CardApplicationApiTest {
         var rejected = mvc.get().uri("/api/card-applications?status=REJECTED").exchange();
 
         assertThat(none).hasStatus(HttpStatus.OK);
-        assertThat(none).body().asString().isEqualToIgnoringWhitespace("{\"items\":[]}");
-        assertThat(rejected).body().asString().isEqualToIgnoringWhitespace("{\"items\":[]}");
+        // 本文全体ではなく items だけを比べる（Should で page などの項目を足したため。research.md R13）
+        assertThat(none).bodyJson().extractingPath("$.items").asArray().isEmpty();
+        assertThat(rejected).bodyJson().extractingPath("$.items").asArray().isEmpty();
     }
 
     @Test

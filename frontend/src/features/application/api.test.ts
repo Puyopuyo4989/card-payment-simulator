@@ -87,6 +87,25 @@ describe('呼び出し方（contracts の URL・メソッド・本文）', () =>
     )
   })
 
+  // 【Should】キーワード検索とページ分け（contracts 6）
+  test('list はキーワードとページを付けて GET し、キーワードはエンコードする', async () => {
+    const fetchMock = stubFetch(Response.json({ items: [] }))
+
+    await list('APPLIED', { keyword: 'タロウ&x', page: 2 })
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/card-applications?status=APPLIED&keyword=%E3%82%BF%E3%83%AD%E3%82%A6%26x&page=2',
+    )
+  })
+
+  test('list はキーワードが空ならキーワードを付けない', async () => {
+    const fetchMock = stubFetch(Response.json({ items: [] }))
+
+    await list('', { keyword: '', page: 1 })
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/card-applications?page=1')
+  })
+
   test('getDetail は申込番号の詳細を GET する', async () => {
     const fetchMock = stubFetch(Response.json(detail))
 

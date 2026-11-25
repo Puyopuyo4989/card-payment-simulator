@@ -1,15 +1,20 @@
 package com.example.cardpayment.cardapplication.web;
 
+import static com.example.cardpayment.common.web.InputRules.strip;
+
 import com.example.cardpayment.cardapplication.domain.ApplicationStatus;
 import com.example.cardpayment.cardapplication.domain.CardApplication;
 import com.example.cardpayment.cardapplication.domain.StatusTransitionException;
+import com.example.cardpayment.cardapplication.repository.CardApplicationSearchResult;
 import com.example.cardpayment.cardapplication.service.CardApplicationDetail;
 import com.example.cardpayment.cardapplication.service.CardApplicationService;
 import com.example.cardpayment.common.web.InputValidationException;
 import com.example.cardpayment.common.web.InputValidationException.FieldError;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +34,12 @@ public class CardApplicationController {
 
     private static final String STATUS_INVALID =
             "状態は APPLIED・UNDER_REVIEW・APPROVED・REJECTED のどれかを指定してください";
+    private static final int KEYWORD_MAX_LENGTH = 50;
+    private static final String KEYWORD_TOO_LONG = "キーワードは50文字以内で入力してください";
+    private static final String PAGE_INVALID = "ページは1以上の半角数字で指定してください";
+
+    /** 半角数字の9桁まで（int に収まる）。0 は parsePage で誤りにする。先頭の0は受け付ける（年収と同じ）。 */
+    private static final Pattern PAGE_PATTERN = Pattern.compile("[0-9]{1,9}");
 
     private final CardApplicationInputValidator validator;
     private final StatusChangeInputValidator statusChangeValidator;
@@ -53,14 +64,28 @@ public class CardApplicationController {
                 .body(CardApplicationDetailResponse.from(registered));
     }
 
-    /** 一覧（contracts 2）。status が省略か空なら「すべて」。 */
+    /**
+     * 一覧（contracts 2）。status が省略か空なら「すべて」。 【Should】keyword（部分一致）と page（1から、20件ずつ）で絞り込む（contracts
+     * 6）。3つの誤りは、まとめて 400 で返す。
+     */
     @GetMapping
-    public CardApplicationListResponse list(@RequestParam(required = false) String status) {
+    public CardApplicationListResponse list(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String page) {
+        List<FieldError> errors = new ArrayList<>();
+        Optional<ApplicationStatus> statusFilter = parseStatusFilter(status, errors);
+        Optional<String> keywordFilter = parseKeyword(keyword, errors);
+        int pageNumber = parsePage(page, errors);
+        if (!errors.isEmpty()) {
+            throw new InputValidationException(errors);
+        }
+        CardApplicationSearchResult result =
+                service.search(statusFilter, keywordFilter, pageNumber);
         List<CardApplicationSummaryResponse> items =
-                service.list(parseStatusFilter(status)).stream()
-                        .map(CardApplicationSummaryResponse::from)
-                        .toList();
-        return new CardApplicationListResponse(items);
+                result.items().stream().map(CardApplicationSummaryResponse::from).toList();
+        return new CardApplicationListResponse(
+                items, result.page(), result.totalPages(), result.totalItems());
     }
 
     /** 詳細と変更履歴（contracts 3）。ないときは 404。 */
@@ -102,14 +127,40 @@ public class CardApplicationController {
         };
     }
 
-    private static Optional<ApplicationStatus> parseStatusFilter(String status) {
+    private static Optional<ApplicationStatus> parseStatusFilter(
+            String status, List<FieldError> errors) {
         if (status == null || status.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(
-                ApplicationStatus.parse(status)
-                        .orElseThrow(() ->
-                                new InputValidationException(
-                                        List.of(new FieldError("status", STATUS_INVALID)))));
+        Optional<ApplicationStatus> parsed = ApplicationStatus.parse(status);
+        if (parsed.isEmpty()) {
+            errors.add(new FieldError("status", STATUS_INVALID));
+        }
+        return parsed;
+    }
+
+    /** 【Should】前後の空白（全角も）を取り除き、空なら絞り込まない。50文字（コードポイント）まで。 */
+    private static Optional<String> parseKeyword(String keyword, List<FieldError> errors) {
+        String stripped = keyword == null ? "" : strip(keyword);
+        if (stripped.isEmpty()) {
+            return Optional.empty();
+        }
+        if (stripped.codePointCount(0, stripped.length()) > KEYWORD_MAX_LENGTH) {
+            errors.add(new FieldError("keyword", KEYWORD_TOO_LONG));
+            return Optional.empty();
+        }
+        return Optional.of(stripped);
+    }
+
+    /** 【Should】省略（空も）は1。1以上の半角数字だけを受け付ける（大きすぎる数も誤り）。 */
+    private static int parsePage(String page, List<FieldError> errors) {
+        if (page == null || page.isEmpty()) {
+            return 1;
+        }
+        if (!PAGE_PATTERN.matcher(page).matches() || Integer.parseInt(page) < 1) {
+            errors.add(new FieldError("page", PAGE_INVALID));
+            return 1;
+        }
+        return Integer.parseInt(page);
     }
 }

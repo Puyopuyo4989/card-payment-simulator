@@ -5,6 +5,7 @@ import com.example.cardpayment.cardapplication.domain.CardApplication;
 import com.example.cardpayment.cardapplication.domain.NewCardApplication;
 import com.example.cardpayment.cardapplication.domain.StatusChange;
 import com.example.cardpayment.cardapplication.repository.CardApplicationRepository;
+import com.example.cardpayment.cardapplication.repository.CardApplicationSearchResult;
 import com.example.cardpayment.common.time.BusinessTime;
 import java.time.Clock;
 import java.util.List;
@@ -35,6 +36,13 @@ public class CardApplicationService {
     @Transactional(readOnly = true)
     public List<CardApplication> list(Optional<ApplicationStatus> status) {
         return repository.findAll(status);
+    }
+
+    /** 【Should】キーワードと状態で絞り込んだ一覧の page ページ目（spec FR-012・FR-013、research.md R13）。 */
+    @Transactional(readOnly = true)
+    public CardApplicationSearchResult search(
+            Optional<ApplicationStatus> status, Optional<String> keyword, int page) {
+        return repository.search(status, keyword, page);
     }
 
     /** 詳細と変更履歴（spec FR-010）。ないときは ApplicationNotFoundException。 */

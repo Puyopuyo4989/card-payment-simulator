@@ -29,6 +29,11 @@ export type ApplicationSummary = {
 
 export type ApplicationList = {
   items: ApplicationSummary[]
+  // 【Should】ページ分け（contracts 6）。API はいつも返すが、Should を外すときに
+  // この3つを消すだけで済むよう、省略できる形にしておく（ないときはページの切り替えを出さない）
+  page?: number
+  totalPages?: number
+  totalItems?: number
 }
 
 /** 変更履歴の1行（contracts 3）。否決でない行の rejectionReason は null */

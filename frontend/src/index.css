@@ -304,8 +304,31 @@ body {
   background: var(--color-row-alt);
 }
 
+/* 【Should】申込の一覧のキーワード検索（003 の R13）。「検索」は入力欄の右に置く */
+.search-field {
+  grid-template-columns: var(--form-label-width) var(--form-input-width) auto;
+}
+
+.search-field > button {
+  grid-column: 3;
+}
+
+/* 【Should】一覧のページの切り替え（「前へ」「n / m ページ」「次へ」） */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
 /* 狭い画面では、ラベルを入力欄の上に置く */
 @media (max-width: 36rem) {
+  .search-field > button {
+    grid-column: 1;
+    justify-self: start;
+  }
+
   .panel {
     padding: var(--space-4);
   }

@@ -257,15 +257,25 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 4（先に書き、red を確かめる）
 
-- [ ] T061 [P] [US4] 検索とページのリポジトリのテストを `{test}/{ca}/repository/CardApplicationSearchRepositoryTest.java` に書く（Testcontainers、`@BeforeEach` で片付け）：(1) 氏名（カナ）「テスト　タロウ」・「ミホン　ハナコ」と、氏名（漢字）に「タロウ」を含む申込を入れ、キーワード「タロウ」で、漢字・カナ・申込番号のどれかに含むものだけが出る（US4-1）、(2) 申込番号の一部（`"00002"`）でも探せる、(3) キーワードと状態の両方に合うものだけ（US4-2）、(4) 25件で、1ページ目が新しい順の20件・2ページ目が5件・`totalItems` 25・`totalPages` 2、3ページ目は空（US4-3）、(5) 0件のとき `totalPages` 0、(6) キーワード `%`・`_`・`\` は文字そのものとして探す（全件が出ない）
-- [ ] T062 [P] [US4] 検索とページの API のテストを `{test}/{ca}/web/CardApplicationSearchApiTest.java` に書く（contracts 6）：(1) `?keyword=タロウ&status=APPLIED&page=2` の形で呼べ、`items`・`page`・`totalPages`・`totalItems` が返る、(2) `keyword` を省略・空・空白だけ → 絞り込まない、(3) `keyword` 51文字 → 400・`keyword`・contracts のメッセージ、(4) `page` が `0`・`-1`・`abc` → 400・`page`、省略は1、(5) Must の `GET /api/card-applications`（パラメーターなし）の `items` は今までと同じ
-- [ ] T063 [P] [US4] 一覧の画面のテストを `{fe}/ApplicationListSearch.test.tsx` に書く：キーワードの入力欄と「検索」ボタンで `list({ status, keyword, page: 1 })` を呼ぶ、「前へ」「次へ」と「n / m ページ」、最初のページで「前へ」、最後のページで「次へ」を押せない、該当なしは「該当する申込はありません」（US4-4）
+- [x] T061 [P] [US4] 検索とページのリポジトリのテストを `{test}/{ca}/repository/CardApplicationSearchRepositoryTest.java` に書く（Testcontainers、`@BeforeEach` で片付け）：(1) 氏名（カナ）「テスト　タロウ」・「ミホン　ハナコ」と、氏名（漢字）に「タロウ」を含む申込を入れ、キーワード「タロウ」で、漢字・カナ・申込番号のどれかに含むものだけが出る（US4-1）、(2) 申込番号の一部（`"00002"`）でも探せる、(3) キーワードと状態の両方に合うものだけ（US4-2）、(4) 25件で、1ページ目が新しい順の20件・2ページ目が5件・`totalItems` 25・`totalPages` 2、3ページ目は空（US4-3）、(5) 0件のとき `totalPages` 0、(6) キーワード `%`・`_`・`\` は文字そのものとして探す（全件が出ない）
+- [x] T062 [P] [US4] 検索とページの API のテストを `{test}/{ca}/web/CardApplicationSearchApiTest.java` に書く（contracts 6）：(1) `?keyword=タロウ&status=APPLIED&page=2` の形で呼べ、`items`・`page`・`totalPages`・`totalItems` が返る、(2) `keyword` を省略・空・空白だけ → 絞り込まない、(3) `keyword` 51文字 → 400・`keyword`・contracts のメッセージ、(4) `page` が `0`・`-1`・`abc` → 400・`page`、省略は1、(5) Must の `GET /api/card-applications`（パラメーターなし）の `items` は今までと同じ
+- [x] T063 [P] [US4] 一覧の画面のテストを `{fe}/ApplicationListSearch.test.tsx` に書く：キーワードの入力欄と「検索」ボタンで `list({ status, keyword, page: 1 })` を呼ぶ、「前へ」「次へ」と「n / m ページ」、最初のページで「前へ」、最後のページで「次へ」を押せない、該当なしは「該当する申込はありません」（US4-4）
 
 ### Implementation for User Story 4
 
-- [ ] T064 [US4] `CardApplicationRepository` に `search(Optional<ApplicationStatus>, Optional<String> keyword, int page)`（`ILIKE '%…%' ESCAPE '\'`、`%`・`_`・`\` をエスケープ、`LIMIT 20 OFFSET (page - 1) * 20`、件数は `count(*)`）を足す。Must の `findAll` は変えない。T061 が green になる
-- [ ] T065 [US4] `CardApplicationService` に `search` を、`CardApplicationListResponse` に `page`・`totalPages`・`totalItems` を、`CardApplicationController` の一覧に `keyword`・`page` のパラメーターとそのチェック（contracts 6 のメッセージ）を足す。T062 が green になり、Must の一覧のテスト（T023）も green のまま
-- [ ] T066 [US4] `{fe}/api.ts` の `list` に `keyword`・`page` を、`{fe}/types.ts` に3つの項目を、`{fe}/ApplicationList.tsx` にキーワードの入力欄とページの切り替えを足す。T063 が green になり、T053 も green のまま
+- [x] T064 [US4] `CardApplicationRepository` に `search(Optional<ApplicationStatus>, Optional<String> keyword, int page)`（`ILIKE '%…%' ESCAPE '\'`、`%`・`_`・`\` をエスケープ、`LIMIT 20 OFFSET (page - 1) * 20`、件数は `count(*)`）を足す。Must の `findAll` は変えない。T061 が green になる
+- [x] T065 [US4] `CardApplicationService` に `search` を、`CardApplicationListResponse` に `page`・`totalPages`・`totalItems` を、`CardApplicationController` の一覧に `keyword`・`page` のパラメーターとそのチェック（contracts 6 のメッセージ）を足す。T062 が green になり、Must の一覧のテスト（T023）も green のまま
+- [x] T066 [US4] `{fe}/api.ts` の `list` に `keyword`・`page` を、`{fe}/types.ts` に3つの項目を、`{fe}/ApplicationList.tsx` にキーワードの入力欄とページの切り替えを足す。T063 が green になり、T053 も green のまま
+
+**T061〜T066 の記録（2026-11-25）**
+
+- Must のテストを2か所だけ変えた（research.md R13 の「Must のテストは変えずに済む」は、この2か所では成り立たなかった）。どちらも、確かめる中身は変えず、Should で足したものを比べる対象から外しただけ：
+  - `CardApplicationApiTest`「該当する申込がないときは空のitemsを返す」：本文全体を `{"items":[]}` と比べていたので、`$.items` が空であることを比べる形にした
+  - `ApplicationList.test.tsx` の3つの `toHaveBeenLastCalledWith('')`・`('UNDER_REVIEW')`：`list` の2つ目の引数（キーワードとページ）が増えたので、1つ目の引数（状態）だけを比べる形にした
+- `list` は、タスクの `list({ status, keyword, page })` ではなく、Must の `list(status)` に2つ目の引数 `{ keyword, page }` を足す形にした（Must の呼び方とテストを残すため）
+- `page` は、半角数字の9桁まで（`int` に収まる範囲）を受け付け、それより長いものは 400 にした（500 にしないため）。先頭の0（`01`）は受け付ける。空（`?page=`）は省略と同じ1
+- 状態・キーワード・ページの誤りは、まとめて1つの 400 で返す（Must の `status` だけのときと同じ本文の形）
+- 画面：状態かキーワード（「検索」を押したとき）を変えたら1ページ目に戻る。キーワードは入力しただけでは読み直さない。`types.ts` の3つの項目は、Should を外しやすいよう省略できる形にした（ないときはページの切り替えを出さない）
 
 ### 画面の直し（Must の PR の前に見つけたもの。2026-11-25 に足した）
 

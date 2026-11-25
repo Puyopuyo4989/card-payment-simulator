@@ -25,10 +25,26 @@ export function register(
 /** GET /api/card-applications（contracts 2）。状態が空なら付けない（すべて） */
 export function list(
   status: ApplicationStatus | '' = '',
+  search?: ListSearch,
 ): Promise<ApiOutcome<ApplicationList, 'status'>> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  const params = new URLSearchParams()
+  if (status) {
+    params.set('status', status)
+  }
+  // 【Should】キーワードとページ（contracts 6）
+  if (search?.keyword) {
+    params.set('keyword', search.keyword)
+  }
+  if (search) {
+    params.set('page', String(search.page))
+  }
+  const encoded = params.toString()
+  const query = encoded ? `?${encoded}` : ''
   return call(`${BASE}${query}`)
 }
+
+/** 【Should】一覧のキーワード（空なら絞り込まない）とページ（1から） */
+export type ListSearch = { keyword: string; page: number }
 
 /** GET /api/card-applications/{applicationNumber}（contracts 3） */
 export function getDetail(
