@@ -189,13 +189,14 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 1（先に書き、red を確かめる）
 
-- [ ] T049 [P] [US1] 登録のフォームのテストを書く：`{fe}/ApplicationForm.test.tsx`（`api.ts` は `vi.mock`）。(1) 6項目の入力欄（氏名（漢字）・氏名（カナ）・生年月日（`type="date"`）・年収（`inputMode="numeric"`、単位「万円」の表示）・勤務先名・電話番号（`inputMode="numeric"`））があり、ラベルで探せる、(2) 「ダミーの情報だけを入力してください。本物の氏名・電話番号などは入力しないでください」の注意書きがある（FR-020）、(3) カード番号の入力欄がない（FR-021）、(4) 入力した文字列をそのまま `register` に渡す、(5) `inputError` のとき、各項目の入力欄のすぐ下に `role="alert"` でメッセージを出し、入力欄に `aria-invalid="true"`、(6) 登録の実行中はボタンを押せない、(7) もう一度登録するとき、前のエラーを消す、(8) `unexpectedError` のとき、予期しないエラーのメッセージを出す、(9) `success` のとき `onRegistered(applicationNumber)` を呼ぶ
-- [ ] T050 [P] [US1] 登録から詳細へ移ることのテストを `{fe}/ApplicationPage.test.tsx` に書く：「新規登録」を押すと登録のフォームが出る、登録が成功すると、その申込の詳細（`getDetail` を返した申込番号で呼ぶ）が出る
+- [x] T049 [P] [US1] 登録のフォームのテストを書く：`{fe}/ApplicationForm.test.tsx`（`api.ts` は `vi.mock`）。(1) 6項目の入力欄（氏名（漢字）・氏名（カナ）・生年月日（`type="date"`）・年収（`inputMode="numeric"`、単位「万円」の表示）・勤務先名・電話番号（`inputMode="numeric"`））があり、ラベルで探せる、(2) 「ダミーの情報だけを入力してください。本物の氏名・電話番号などは入力しないでください」の注意書きがある（FR-020）、(3) カード番号の入力欄がない（FR-021）、(4) 入力した文字列をそのまま `register` に渡す、(5) `inputError` のとき、各項目の入力欄のすぐ下に `role="alert"` でメッセージを出し、入力欄に `aria-invalid="true"`、(6) 登録の実行中はボタンを押せない、(7) もう一度登録するとき、前のエラーを消す、(8) `unexpectedError` のとき、予期しないエラーのメッセージを出す、(9) `success` のとき `onRegistered(applicationNumber)` を呼ぶ
+- [x] T050 [P] [US1] 登録から詳細へ移ることのテストを `{fe}/ApplicationPage.test.tsx` に書く：「新規登録」を押すと登録のフォームが出る、登録が成功すると、その申込の詳細（`getDetail` を返した申込番号で呼ぶ）が出る
+  - 2026-11-25：T052 では詳細の中身を作らず、申込番号を見出しに出すだけなので、Phase 6 のテストは「見出し「申込番号 A00000001」が出て、登録のフォームが消える」までにした。`getDetail` を返した申込番号で呼ぶことは、Phase 7（T056）で詳細を組み込むときに、`ApplicationPage.test.tsx` にテストを足して確かめる
 
 ### Implementation for User Story 1
 
-- [ ] T051 [US1] `{fe}/ApplicationForm.tsx` を作る。既存の部品（`.form`・`.form-field`・`.button`・`.field-error`、`shared/fieldErrors.tsx`・`shared/useReturnFocus.ts`）と T048 の `.notice` を使う。T049 が green になる
-- [ ] T052 [US1] `{fe}/ApplicationPage.tsx` の「新規登録」のボタン（T047 で作った）に、登録のフォームを開く動きと、登録 → 詳細の切り替えを足す（詳細の中身は Phase 7 で作るので、ここでは申込番号を見出しに出すだけでよい）。T050 が green になる
+- [x] T051 [US1] `{fe}/ApplicationForm.tsx` を作る。既存の部品（`.form`・`.form-field`・`.button`・`.field-error`、`shared/fieldErrors.tsx`・`shared/useReturnFocus.ts`）と T048 の `.notice` を使う。T049 が green になる
+- [x] T052 [US1] `{fe}/ApplicationPage.tsx` の「新規登録」のボタン（T047 で作った）に、登録のフォームを開く動きと、登録 → 詳細の切り替えを足す（詳細の中身は Phase 7 で作るので、ここでは申込番号を見出しに出すだけでよい）。T050 が green になる
 
 **Checkpoint**: 画面から登録でき、quickstart.md 5 の #2〜#4 を確かめられる。
 
