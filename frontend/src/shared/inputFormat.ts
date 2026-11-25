@@ -7,9 +7,12 @@
 
 const DIGITS = /^[0-9]+$/
 
-/** カンマを取り除いた文字。半角数字だけにならなければ null */
+/**
+ * 前後の空白とカンマを取り除いた文字。半角数字だけにならなければ null。
+ * 前後の空白は、コピーして貼り付けたときに付きやすいので、カンマを取り除く前に取り除く（API も前後の空白を取り除いてから確かめる）
+ */
 function digitsWithoutCommas(text: string): string | null {
-  const digits = text.replaceAll(',', '')
+  const digits = text.trim().replaceAll(',', '')
   return DIGITS.test(digits) ? digits : null
 }
 

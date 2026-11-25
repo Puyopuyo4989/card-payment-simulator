@@ -121,14 +121,15 @@ frontend/src/
 │   ├── fieldErrors.tsx                         #（移）入力欄のエラーの属性とメッセージ
 │   ├── useSimulation.ts                        #（移）InstallmentPage の実行中・結果の扱い
 │   ├── useReturnFocus.ts                       #（移）InstallmentForm のフォーカスを戻す処理
-│   └── ScheduleTable.tsx                       #（移）installment から
+│   ├── ScheduleTable.tsx                       #（移）installment から
+│   └── inputFormat.ts                          #（移・2026-11-25）入力欄のカンマと .0（FR-016〜FR-019）。分割払いの FR-015〜FR-018 と共通
 └── features/
     ├── installment/                            #（変）共通のものを使うように直すだけ
     └── revolving/                              #（新）
         ├── api.ts                              # POST /api/revolving-simulations を呼ぶ
         ├── types.ts                            # API の型（contracts と同じ項目名）
         ├── RevolvingPage.tsx
-        ├── RevolvingForm.tsx                   # 利用残高・毎月の支払額・実質年率（3つとも文字の入力欄）
+        ├── RevolvingForm.tsx                   # 利用残高・毎月の支払額・実質年率（3つとも文字の入力欄。【Should】フォーカスが外れたら整える）
         ├── RevolvingSummary.tsx                # 完済までの支払回数・手数料の合計・支払総額（FR-013）
         └── *.test.tsx / *.test.ts              # テストは対象のファイルの隣に置く
 ```

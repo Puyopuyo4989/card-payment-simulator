@@ -247,6 +247,23 @@ test.each([
   },
 )
 
+test('後ろに空白のある「100,000 」（コピーして貼り付けたとき）も、空白とカンマを取り除いて受け付ける', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<InstallmentForm onSubmit={onSubmit} />)
+
+  await user.click(amountBox())
+  await user.paste('100,000 ')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(amountBox()).toHaveValue('100,000')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    amount: '100000',
+    paymentCount: '',
+    annualRate: '',
+  })
+})
+
 test('大きな桁の利用金額も、丸めずにカンマを付け、カンマを取り除いて送る（数に変えない）', async () => {
   const user = userEvent.setup()
   const onSubmit = vi.fn()

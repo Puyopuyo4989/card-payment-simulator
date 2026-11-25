@@ -227,6 +227,26 @@ test.each([
   },
 )
 
+test('後ろに空白のある「100,000 」「10,000 」（コピーして貼り付けたとき）も、空白とカンマを取り除いて受け付ける', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<RevolvingForm onSubmit={onSubmit} />)
+
+  await user.click(balanceBox())
+  await user.paste('100,000 ')
+  await user.click(paymentBox())
+  await user.paste('10,000 ')
+  await user.click(screen.getByRole('button', { name: '計算する' }))
+
+  expect(balanceBox()).toHaveValue('100,000')
+  expect(paymentBox()).toHaveValue('10,000')
+  expect(onSubmit).toHaveBeenLastCalledWith({
+    balance: '100000',
+    monthlyPayment: '10000',
+    annualRate: '',
+  })
+})
+
 test('大きな桁の金額も、丸めずにカンマを付け、カンマを取り除いて送る（数に変えない）', async () => {
   const user = userEvent.setup()
   const onSubmit = vi.fn()
