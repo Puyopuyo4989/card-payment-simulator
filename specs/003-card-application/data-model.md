@@ -121,6 +121,8 @@
 
 1. 本文が JSON として読めない → 400（`errors` なし）。
 2. 上の表の入力チェック（DB を読まない）→ 誤りがあれば 400 ＋ `errors[]`（並びは `toStatus` → `staffName` → `rejectionReason` → `version`）。
+   `toStatus` が未入力、または4つの値のどれでもないときは、否決の理由が要るかどうかが決まらないので、`rejectionReason` は確かめない
+   （`errors[]` に `rejectionReason` は入らない。`staffName`・`version` は確かめる）。
 3. 申込を読む。ない → 404。
 4. 読んだ `version` ≠ 送られた `version` → 409。
 5. `CardApplication.changeStatus(toStatus, staffName, rejectionReason, now)` → 許されない遷移なら 400 ＋ `errors[]`（`field: "toStatus"`）。

@@ -220,6 +220,9 @@ Content-Type: application/json
 
 data-model.md 4 のとおり：JSON → 入力（400）→ 申込があるか（404）→ version（409）→ 遷移（400）→ 保存（0行なら 409）。
 
+入力（400）では、`toStatus` が未入力、または4つの値のどれでもないとき、否決の理由が要るかどうかが決まらないので、
+`rejectionReason` は確かめない（`errors[]` に `rejectionReason` は入らない。`staffName`・`version` は確かめる）。
+
 ### レスポンス：成功（200 OK）
 
 変更後の詳細（3 と同じ形）。`status`・`updatedAt` が変わり、`version` が1増え、`history` の最後に1行増える。
