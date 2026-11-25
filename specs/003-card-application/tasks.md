@@ -210,13 +210,14 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 2（先に書き、red を確かめる）
 
-- [ ] T053 [P] [US2] 一覧のテストを書く：`{fe}/ApplicationList.test.tsx`（`api.ts` は `vi.mock`）。(1) 表の列が申込番号・氏名（漢字）・状態（表示名）・申込日時（日本時間）で、API が返した順のまま並べる（並べ替えない）、(2) 状態の `select` は「すべて」「申込」「審査中」「承認」「否決」で、最初は「すべて」、選ぶと `list(status)` を呼び直す、「すべて」に戻すと `status` なしで呼ぶ（US2-2・US2-3）、(3) `items` が空のとき「該当する申込はありません」（US2-4・US2-6）、(4) 申込番号のボタンを押す（キーボードでも）と `onSelect(applicationNumber)` を呼ぶ（US2-5）、(5) 一覧を開くたびに API を呼び、最新の状態を出す（spec のエッジケース「絞り込んだあとに、ほかの担当者が状態を変えた」）
-- [ ] T054 [P] [US2] 詳細のテストを書く：`{fe}/ApplicationDetail.test.tsx`。(1) 全項目・状態・申込日時・更新日時（日本時間）が出る。年収は「450万円」（FR-010・FR-011）、(2) 変更履歴の表（変更日時・変更前→変更後・担当者名・否決の理由）が API の順（古い順）で出る。履歴が0行のときは「変更履歴はありません」、(3) `notFound` のとき「申込が見つかりません」と、一覧に戻るボタン（US2-7）、(4) 一覧に戻るボタンで `onBack` を呼ぶ
+- [x] T053 [P] [US2] 一覧のテストを書く：`{fe}/ApplicationList.test.tsx`（`api.ts` は `vi.mock`）。(1) 表の列が申込番号・氏名（漢字）・状態（表示名）・申込日時（日本時間）で、API が返した順のまま並べる（並べ替えない）、(2) 状態の `select` は「すべて」「申込」「審査中」「承認」「否決」で、最初は「すべて」、選ぶと `list(status)` を呼び直す、「すべて」に戻すと `status` なしで呼ぶ（US2-2・US2-3）、(3) `items` が空のとき「該当する申込はありません」（US2-4・US2-6）、(4) 申込番号のボタンを押す（キーボードでも）と `onSelect(applicationNumber)` を呼ぶ（US2-5）、(5) 一覧を開くたびに API を呼び、最新の状態を出す（spec のエッジケース「絞り込んだあとに、ほかの担当者が状態を変えた」）
+- [x] T054 [P] [US2] 詳細のテストを書く：`{fe}/ApplicationDetail.test.tsx`。(1) 全項目・状態・申込日時・更新日時（日本時間）が出る。年収は「450万円」（FR-010・FR-011）、(2) 変更履歴の表（変更日時・変更前→変更後・担当者名・否決の理由）が API の順（古い順）で出る。履歴が0行のときは「変更履歴はありません」、(3) `notFound` のとき「申込が見つかりません」と、一覧に戻るボタン（US2-7）、(4) 一覧に戻るボタンで `onBack` を呼ぶ
 
 ### Implementation for User Story 2
 
-- [ ] T055 [US2] `{fe}/ApplicationList.tsx` を作る（`.form-field` の `select`、`.table-wrap`・`.schedule-table` の表、`.status-badge`）。T053 が green になる
-- [ ] T056 [US2] `{fe}/ApplicationDetail.tsx` を作る（`.summary` の `dl`、履歴は `.table-wrap`・`.schedule-table`、`.button-secondary` の一覧に戻るボタン）。`ApplicationPage.tsx` の最初の表示を一覧にし、一覧 → 詳細 → 一覧の切り替えを足す。T054 と T050 が green のまま
+- [x] T055 [US2] `{fe}/ApplicationList.tsx` を作る（`.form-field` の `select`、`.table-wrap`・`.schedule-table` の表、`.status-badge`）。T053 が green になる
+- [x] T056 [US2] `{fe}/ApplicationDetail.tsx` を作る（`.summary` の `dl`、履歴は `.table-wrap`・`.schedule-table`、`.button-secondary` の一覧に戻るボタン）。`ApplicationPage.tsx` の最初の表示を一覧にし、一覧 → 詳細 → 一覧の切り替えを足す。T054 と T050 が green のまま
+  - 2026-11-25：`ApplicationPage.test.tsx` に、(1) 最初は一覧を出す、(2) 一覧で選んだ申込の詳細を出し、一覧に戻ると一覧を読み直す、(3) 登録のフォームから登録せずに一覧に戻れる、(4) 登録が返した申込番号で `getDetail` を呼ぶ（T050 の注記）を足した。一覧の申込番号のボタンは文字だけの形（`.link-button`）にし、`index.css` に足した。色の変数は足していないが、新しい組み合わせ（`--color-primary` の文字を `--color-row-alt` の行の上に出す）を先に `styles/contrast.test.ts` に足して確かめた。一覧・詳細の「続けて切り替えたとき、古い応答で上書きしない」は、ガードを一時的に外すとテストが失敗することを確かめた
 
 **Checkpoint**: quickstart.md 5 の #1・#5〜#7 を確かめられる。
 
