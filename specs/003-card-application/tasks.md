@@ -231,13 +231,14 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 ### Tests for User Story 3（先に書き、red を確かめる）
 
-- [ ] T057 [P] [US3] 状態の変更のフォームのテストを書く：`{fe}/StatusChangeForm.test.tsx`（`api.ts` は `vi.mock`）。(1) 状態が「申込」のとき「審査中にする」だけ、「審査中」のとき「承認する」「否決する」だけが出る（US3-6）、(2) 「承認」「否決」のとき、フォームの代わりに「審査が終わった申込の状態は変えられません」（US3-7）、(3) 担当者名と否決の理由の入力欄（理由は「審査中」のときだけ出す）、(4) ボタンを押すと `changeStatus(番号, { toStatus, staffName, rejectionReason, version })` を呼ぶ。`version` は詳細で受け取った値を文字列にして送る。担当者名などは入力のまま送る、(5) `inputError` のとき、該当する入力欄の下に `role="alert"` でメッセージ（US3-4・US3-5）、(6) `conflict` のとき、フォームの上に `role="alert"` で `detail` を出し、`onConflict` を呼ぶ。入力していた担当者名は残す（FR-019、research.md R12）、(7) `success` のとき `onChanged(detail)` を呼び、担当者名と理由の入力欄を空にする、(8) 実行中はボタンを押せない
-- [ ] T058 [P] [US3] 詳細と状態の変更のつながりのテストを `{fe}/ApplicationDetail.test.tsx` に足す：(1) 変更が成功すると、返った詳細で状態・更新日時・履歴が置き換わる（US3-1）、(2) `conflict` のあと、`getDetail` を呼び直して最新の状態と履歴を出し、ぶつかったことのメッセージは残る
+- [x] T057 [P] [US3] 状態の変更のフォームのテストを書く：`{fe}/StatusChangeForm.test.tsx`（`api.ts` は `vi.mock`）。(1) 状態が「申込」のとき「審査中にする」だけ、「審査中」のとき「承認する」「否決する」だけが出る（US3-6）、(2) 「承認」「否決」のとき、フォームの代わりに「審査が終わった申込の状態は変えられません」（US3-7）、(3) 担当者名と否決の理由の入力欄（理由は「審査中」のときだけ出す）、(4) ボタンを押すと `changeStatus(番号, { toStatus, staffName, rejectionReason, version })` を呼ぶ。`version` は詳細で受け取った値を文字列にして送る。担当者名などは入力のまま送る、(5) `inputError` のとき、該当する入力欄の下に `role="alert"` でメッセージ（US3-4・US3-5）、(6) `conflict` のとき、フォームの上に `role="alert"` で `detail` を出し、`onConflict` を呼ぶ。入力していた担当者名は残す（FR-019、research.md R12）、(7) `success` のとき `onChanged(detail)` を呼び、担当者名と理由の入力欄を空にする、(8) 実行中はボタンを押せない
+- [x] T058 [P] [US3] 詳細と状態の変更のつながりのテストを `{fe}/ApplicationDetail.test.tsx` に足す：(1) 変更が成功すると、返った詳細で状態・更新日時・履歴が置き換わる（US3-1）、(2) `conflict` のあと、`getDetail` を呼び直して最新の状態と履歴を出し、ぶつかったことのメッセージは残る
 
 ### Implementation for User Story 3
 
-- [ ] T059 [US3] `{fe}/StatusChangeForm.tsx` を作る（どのボタンを出すかは `statusLabels.ts` で決める。フロントは遷移の正しさを判定しない）。T057 が green になる
-- [ ] T060 [US3] `{fe}/ApplicationDetail.tsx` に `StatusChangeForm` を組み込み、成功のときの置き換えと、ぶつかったときの読み直しを足す。T058 が green になる
+- [x] T059 [US3] `{fe}/StatusChangeForm.tsx` を作る（どのボタンを出すかは `statusLabels.ts` で決める。フロントは遷移の正しさを判定しない）。T057 が green になる
+- [x] T060 [US3] `{fe}/ApplicationDetail.tsx` に `StatusChangeForm` を組み込み、成功のときの置き換えと、ぶつかったときの読み直しを足す。T058 が green になる
+  - 2026-11-25：T057 に、(a) 「審査中にする」は否決の理由を空で送る、(b) 変更後の状態（遷移の誤り）と版のエラーは入力欄がないのでフォームの上に出す、(c) 予期しないエラーのメッセージ、(d) もう一度押すとき前のメッセージを消す、を足した。「承認する」「否決する」が並ぶので、`index.css` の `.form-actions` にボタンの間のすき間（`gap`）を足した（ボタンが1つの既存のフォームの見た目は変わらない）
 
 **Checkpoint**: まとまり B が終わり。quickstart.md 5 の #1〜#14 を確かめられる。**Must はここまで。**
 

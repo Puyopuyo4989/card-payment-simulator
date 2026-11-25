@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, test, vi } from 'vitest'
 import ApplicationDetail from './ApplicationDetail'
-import { getDetail } from './api'
+import { changeStatus, getDetail } from './api'
 import type { ApplicationDetail as Detail } from './types'
 
 vi.mock('./api', () => ({ getDetail: vi.fn(), changeStatus: vi.fn() }))
@@ -43,6 +43,7 @@ const rejected: Detail = {
 beforeEach(() => {
   getDetailMock.mockReset()
   getDetailMock.mockResolvedValue({ kind: 'success', result: rejected })
+  vi.mocked(changeStatus).mockReset()
 })
 
 /** 要約（dl）の「項目名 → 値」 */
@@ -163,6 +164,100 @@ test('詳細を読み込めなかったときはメッセージを出す', async
     '詳細を読み込めませんでした。もう一度お試しください',
   )
   expect(screen.getByRole('button', { name: '一覧に戻る' })).toBeInTheDocument()
+})
+
+// 状態の変更とのつながり（US3。tasks.md T058）
+
+const applied: Detail = {
+  ...rejected,
+  status: 'APPLIED',
+  updatedAt: '2026-11-25T01:30:00Z',
+  version: 0,
+  history: [],
+}
+
+test('状態の変更が成功すると、返った詳細で状態・更新日時・履歴を置き換える', async () => {
+  const user = userEvent.setup()
+  getDetailMock.mockResolvedValue({ kind: 'success', result: applied })
+  vi.mocked(changeStatus).mockResolvedValue({
+    kind: 'success',
+    result: {
+      ...applied,
+      status: 'UNDER_REVIEW',
+      updatedAt: '2026-11-25T02:00:00Z',
+      version: 1,
+      history: [rejected.history[0]],
+    },
+  })
+  const { container } = render(
+    <ApplicationDetail applicationNumber="A00000001" onBack={vi.fn()} />,
+  )
+
+  await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当A')
+  await user.click(screen.getByRole('button', { name: '審査中にする' }))
+
+  expect(
+    await screen.findByRole('button', { name: '承認する' }),
+  ).toBeInTheDocument()
+  expect(summaryOf(container)['状態']).toBe('審査中')
+  expect(summaryOf(container)['更新日時']).toBe('2026/11/25 11:00')
+  expect(
+    within(screen.getByRole('table', { name: '変更履歴' }))
+      .getAllByRole('row')
+      .slice(1),
+  ).toHaveLength(1)
+  // 詳細を読み直さず、返った詳細を使う
+  expect(getDetailMock).toHaveBeenCalledTimes(1)
+})
+
+test('ほかの担当者とぶつかったら、詳細を読み直して最新の状態と履歴を出し、メッセージは残す', async () => {
+  const user = userEvent.setup()
+  const underReview: Detail = {
+    ...applied,
+    status: 'UNDER_REVIEW',
+    version: 1,
+    history: [rejected.history[0]],
+  }
+  const approvedByOther: Detail = {
+    ...underReview,
+    status: 'APPROVED',
+    updatedAt: '2026-11-25T03:00:00Z',
+    version: 2,
+    history: [
+      rejected.history[0],
+      {
+        changedAt: '2026-11-25T03:00:00Z',
+        fromStatus: 'UNDER_REVIEW',
+        toStatus: 'APPROVED',
+        staffName: 'テスト 担当C',
+        rejectionReason: null,
+      },
+    ],
+  }
+  getDetailMock
+    .mockResolvedValueOnce({ kind: 'success', result: underReview })
+    .mockResolvedValueOnce({ kind: 'success', result: approvedByOther })
+  vi.mocked(changeStatus).mockResolvedValue({
+    kind: 'conflict',
+    detail: '最新の状態を確かめてから、もう一度操作してください',
+  })
+  const { container } = render(
+    <ApplicationDetail applicationNumber="A00000001" onBack={vi.fn()} />,
+  )
+
+  await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当B')
+  await user.type(screen.getByLabelText('否決の理由'), 'テスト用の否決理由')
+  await user.click(screen.getByRole('button', { name: '否決する' }))
+
+  expect(
+    await screen.findByText('審査が終わった申込の状態は変えられません'),
+  ).toBeInTheDocument()
+  expect(getDetailMock).toHaveBeenCalledTimes(2)
+  expect(summaryOf(container)['状態']).toBe('承認')
+  expect(screen.getByText('テスト 担当C')).toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    '最新の状態を確かめてから、もう一度操作してください',
+  )
 })
 
 test('一覧に戻るボタンで一覧に戻る', async () => {

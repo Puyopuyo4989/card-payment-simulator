@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { formatDateTime } from '../../shared/formatDateTime'
 import { getDetail } from './api'
 import { formatManYen } from './formatManYen'
+import StatusChangeForm from './StatusChangeForm'
 import { STATUS_LABELS } from './statusLabels'
 import type { ApiOutcome, ApplicationDetail as Detail } from './types'
 
@@ -11,7 +12,10 @@ type Props = {
   onBack: () => void
 }
 
-/** 申込の詳細（US2）。全項目と、変更履歴（API の順＝古い順）を出す */
+/**
+ * 申込の詳細（US2）。全項目と、変更履歴（API の順＝古い順）と、状態の変更のフォーム（US3）を出す。
+ * 変更できたら返った詳細で置き換え、ほかの担当者とぶつかったら読み直す
+ */
 export default function ApplicationDetail({
   applicationNumber,
   onBack,
@@ -100,6 +104,16 @@ export default function ApplicationDetail({
           </table>
         </div>
       )}
+      <StatusChangeForm
+        detail={detail}
+        onChanged={(changed) =>
+          setOutcome({ kind: 'success', result: changed })
+        }
+        onConflict={() => {
+          // ほかの担当者が先に変えたので、最新の状態と履歴を読み直す（FR-019、research.md R12）
+          getDetail(applicationNumber).then(setOutcome)
+        }}
+      />
     </>
   )
 }
