@@ -141,6 +141,18 @@ class CardApplicationSearchApiTest {
     }
 
     @Test
+    void ページが空なら1ページ目を返す() {
+        insert("テスト 太郎", "テスト　タロウ", 0);
+
+        var result = list("?page=");
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.items[*].applicationNumber").asArray().containsExactly("A00000001");
+        json.extractingPath("$.page").isEqualTo(1);
+    }
+
+    @Test
     void 最後のページより後は空のitems() {
         insert("テスト 太郎", "テスト　タロウ", 0);
 

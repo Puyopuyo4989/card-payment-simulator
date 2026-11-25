@@ -283,10 +283,10 @@ Must の画面の目視（ユーザー、T072）と、PR 前のコードレビ�
 
 **目視で見つけたもの（既知の4件）**
 
-- [ ] T076 [P] [US2] 一覧の「新規登録」ボタンと、「状態」の絞り込みの行の間にすき間を空ける（`{fe}/ApplicationPage.tsx`・`frontend/src/index.css`）。すき間は `tokens.css` の `--space-*` を使い、新しい値を作らない
-- [ ] T077 [P] [US2] 申込の詳細の項目の値を、年収も含めてすべて左寄せにし、ラベルの列の幅をそろえる（登録のフォームと同じ形。`--form-label-width` と同じ考え方）。返済表と、分割払い・リボ払いの要約（`InstallmentSummary.tsx`・`RevolvingSummary.tsx` の `.summary`）の右寄せは変えない。原因は `.summary > div` の `justify-content: space-between` なので、`.summary` そのものは変えず、詳細の `dl`（`{fe}/ApplicationDetail.tsx`）にだけ別のクラスを付ける。分割払い・リボ払いの画面が変わらないことも画面で確かめる
+- [x] T076 [P] [US2] 一覧の「新規登録」ボタンと、「状態」の絞り込みの行の間にすき間を空ける（`{fe}/ApplicationPage.tsx`・`frontend/src/index.css`）。すき間は `tokens.css` の `--space-*` を使い、新しい値を作らない
+- [x] T077 [P] [US2] 申込の詳細の項目の値を、年収も含めてすべて左寄せにし、ラベルの列の幅をそろえる（登録のフォームと同じ形。`--form-label-width` と同じ考え方）。返済表と、分割払い・リボ払いの要約（`InstallmentSummary.tsx`・`RevolvingSummary.tsx` の `.summary`）の右寄せは変えない。原因は `.summary > div` の `justify-content: space-between` なので、`.summary` そのものは変えず、詳細の `dl`（`{fe}/ApplicationDetail.tsx`）にだけ別のクラスを付ける。分割払い・リボ払いの画面が変わらないことも画面で確かめる
 - [x] T078 [P] [US3] ほかの担当者とぶつかったとき（409）、`title`「ほかの担当者が先に状態を変えました」も画面に出す（いまは `detail` だけ。contracts 4）。`{fe}/api.ts` の `conflict` に `title` を持たせ（本文にないときは決まった文）、`{fe}/StatusChangeForm.tsx` で `title` と `detail` を出す。先に `api.test.ts`・`StatusChangeForm.test.tsx` に、`title` が出ることのテストを足す
-- [ ] T079 [P] [US2] 幅 360px のとき、変更履歴の表を横にスクロールさせ、変更日時・「変更前 → 変更後」・担当者名は言葉の途中で折り返さない（`{fe}/ApplicationDetail.tsx`・`frontend/src/index.css`）。否決の理由の列は折り返してよい。返済表（`.schedule-table`・`.table-wrap`）の見た目は変えない。一覧の表も同じように見え方を確かめる
+- [x] T079 [P] [US2] 幅 360px のとき、変更履歴の表を横にスクロールさせ、変更日時・「変更前 → 変更後」・担当者名は言葉の途中で折り返さない（`{fe}/ApplicationDetail.tsx`・`frontend/src/index.css`）。否決の理由の列は折り返してよい。返済表（`.schedule-table`・`.table-wrap`）の見た目は変えない。一覧の表も同じように見え方を確かめる
 
 **T076〜T079 の記録（2026-11-25）**
 
@@ -361,6 +361,17 @@ PR 前の確認（pre-pr-check）のコードレビューと `/speckit-analyze` 
 - Minor 7：`CardApplicationService.list`・`CardApplicationRepository.findAll` が本番のコードから呼ばれなくなった。Should を外すときに戻す先として残しているので、その意図を JavaDoc に書く
 - Minor 8：件数（`count(*)`）と一覧を別の `SELECT` で読んでいるので、間に登録が入ると `totalItems` と `items` が1件ずれることがある（100件規模では実害はほぼない）。必要なら `count(*) OVER()` で1回にまとめる
 - C1（`/speckit-analyze`）：テストに、R11 で決めた架空の値以外の値がある（漢字の「テスト タロウ」「テスト%太郎」など）。どれも明らかに架空なので原則IV の違反ではないが、T061 の指示と R11 の決まりがもともと食い違っている。どちらに合わせるかを決める
+
+- Minor 7 と一緒に扱う（2026-11-25 にユーザーが決定）：Should の変更で、バックエンドの行のカバレッジが1行だけ落ちた（`CardApplicationService.java` の `list` の `return repository.findAll(status);`。
+  一覧の API が `search` を呼ぶようになり、本番のコードから呼ばれなくなったため）。Should を外すときの戻り先として、この1行は残す。
+  次のスプリントで、JavaDoc に意図を書くか、`list` を消すかを決める
+
+**カバレッジと画面の確認の記録（2026-11-25）**
+
+- `CardApplicationController.parsePage` の「空（`?page=`）は1ページ目」の分岐にテストがなかった（分岐のカバレッジが1つ落ちていた）。
+  `CardApplicationSearchApiTest` に「ページが空なら1ページ目を返す」を足し、空の判定（`page.isEmpty()`）を一時的に外すと 400 になって失敗することを確かめてから、元に戻した
+- 画面の確認（ユーザー、2026-11-25）：すき間（`.stack`）、「検索」ボタンの幅、ラジオボタン（T081）、キーワードのエラー（PR 前の確認の Important 1）、T076・T077・T079 は、すべて問題なし。
+  分割払い・リボ払いの画面も変わっていない。T076・T077・T079 にチェックを付けた
 
 **Checkpoint**: quickstart.md 7 を確かめられる。T076〜T086 を直したときは、quickstart.md 5 の画面の確認（特に #1・#3・#7・#12・#14）をもう一度行う。
 
