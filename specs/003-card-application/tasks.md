@@ -253,19 +253,29 @@ A が終われば、API だけで受け入れシナリオを確かめられる�
 
 **Independent Test**: 25件登録して、1ページ目に新しい順の20件、2ページ目に5件。キーワード「タロウ」で該当だけ、状態と組み合わせられる（US4-1〜US4-4）。
 
-**外すとき**: このフェーズで足したパラメーター（`keyword`・`page`）・項目（`page`・`totalPages`・`totalItems`）・画面の部品と、そのテストを外す。Phase 1〜8 のコードとテストは変えずに済む（research.md R13）。
+**外すとき**: このフェーズで足したパラメーター（`keyword`・`page`）・項目（`page`・`totalPages`・`totalItems`）・画面の部品と、そのテストを外す。Phase 1〜8 のコードとテストは変えずに済む（research.md R13。ただし Must のテストは2か所だけ変えた。「T061〜T066 の記録」を参照）。
 
 ### Tests for User Story 4（先に書き、red を確かめる）
 
-- [ ] T061 [P] [US4] 検索とページのリポジトリのテストを `{test}/{ca}/repository/CardApplicationSearchRepositoryTest.java` に書く（Testcontainers、`@BeforeEach` で片付け）：(1) 氏名（カナ）「テスト　タロウ」・「ミホン　ハナコ」と、氏名（漢字）に「タロウ」を含む申込を入れ、キーワード「タロウ」で、漢字・カナ・申込番号のどれかに含むものだけが出る（US4-1）、(2) 申込番号の一部（`"00002"`）でも探せる、(3) キーワードと状態の両方に合うものだけ（US4-2）、(4) 25件で、1ページ目が新しい順の20件・2ページ目が5件・`totalItems` 25・`totalPages` 2、3ページ目は空（US4-3）、(5) 0件のとき `totalPages` 0、(6) キーワード `%`・`_`・`\` は文字そのものとして探す（全件が出ない）
-- [ ] T062 [P] [US4] 検索とページの API のテストを `{test}/{ca}/web/CardApplicationSearchApiTest.java` に書く（contracts 6）：(1) `?keyword=タロウ&status=APPLIED&page=2` の形で呼べ、`items`・`page`・`totalPages`・`totalItems` が返る、(2) `keyword` を省略・空・空白だけ → 絞り込まない、(3) `keyword` 51文字 → 400・`keyword`・contracts のメッセージ、(4) `page` が `0`・`-1`・`abc` → 400・`page`、省略は1、(5) Must の `GET /api/card-applications`（パラメーターなし）の `items` は今までと同じ
-- [ ] T063 [P] [US4] 一覧の画面のテストを `{fe}/ApplicationListSearch.test.tsx` に書く：キーワードの入力欄と「検索」ボタンで `list({ status, keyword, page: 1 })` を呼ぶ、「前へ」「次へ」と「n / m ページ」、最初のページで「前へ」、最後のページで「次へ」を押せない、該当なしは「該当する申込はありません」（US4-4）
+- [x] T061 [P] [US4] 検索とページのリポジトリのテストを `{test}/{ca}/repository/CardApplicationSearchRepositoryTest.java` に書く（Testcontainers、`@BeforeEach` で片付け）：(1) 氏名（カナ）「テスト　タロウ」・「ミホン　ハナコ」と、氏名（漢字）に「タロウ」を含む申込を入れ、キーワード「タロウ」で、漢字・カナ・申込番号のどれかに含むものだけが出る（US4-1）、(2) 申込番号の一部（`"00002"`）でも探せる、(3) キーワードと状態の両方に合うものだけ（US4-2）、(4) 25件で、1ページ目が新しい順の20件・2ページ目が5件・`totalItems` 25・`totalPages` 2、3ページ目は空（US4-3）、(5) 0件のとき `totalPages` 0、(6) キーワード `%`・`_`・`\` は文字そのものとして探す（全件が出ない）
+- [x] T062 [P] [US4] 検索とページの API のテストを `{test}/{ca}/web/CardApplicationSearchApiTest.java` に書く（contracts 6）：(1) `?keyword=タロウ&status=APPLIED&page=2` の形で呼べ、`items`・`page`・`totalPages`・`totalItems` が返る、(2) `keyword` を省略・空・空白だけ → 絞り込まない、(3) `keyword` 51文字 → 400・`keyword`・contracts のメッセージ、(4) `page` が `0`・`-1`・`abc` → 400・`page`、省略は1、(5) Must の `GET /api/card-applications`（パラメーターなし）の `items` は今までと同じ
+- [x] T063 [P] [US4] 一覧の画面のテストを `{fe}/ApplicationListSearch.test.tsx` に書く：キーワードの入力欄と「検索」ボタンで `list({ status, keyword, page: 1 })` を呼ぶ、「前へ」「次へ」と「n / m ページ」、最初のページで「前へ」、最後のページで「次へ」を押せない、該当なしは「該当する申込はありません」（US4-4）
 
 ### Implementation for User Story 4
 
-- [ ] T064 [US4] `CardApplicationRepository` に `search(Optional<ApplicationStatus>, Optional<String> keyword, int page)`（`ILIKE '%…%' ESCAPE '\'`、`%`・`_`・`\` をエスケープ、`LIMIT 20 OFFSET (page - 1) * 20`、件数は `count(*)`）を足す。Must の `findAll` は変えない。T061 が green になる
-- [ ] T065 [US4] `CardApplicationService` に `search` を、`CardApplicationListResponse` に `page`・`totalPages`・`totalItems` を、`CardApplicationController` の一覧に `keyword`・`page` のパラメーターとそのチェック（contracts 6 のメッセージ）を足す。T062 が green になり、Must の一覧のテスト（T023）も green のまま
-- [ ] T066 [US4] `{fe}/api.ts` の `list` に `keyword`・`page` を、`{fe}/types.ts` に3つの項目を、`{fe}/ApplicationList.tsx` にキーワードの入力欄とページの切り替えを足す。T063 が green になり、T053 も green のまま
+- [x] T064 [US4] `CardApplicationRepository` に `search(Optional<ApplicationStatus>, Optional<String> keyword, int page)`（`ILIKE '%…%' ESCAPE '\'`、`%`・`_`・`\` をエスケープ、`LIMIT 20 OFFSET (page - 1) * 20`、件数は `count(*)`）を足す。Must の `findAll` は変えない。T061 が green になる
+- [x] T065 [US4] `CardApplicationService` に `search` を、`CardApplicationListResponse` に `page`・`totalPages`・`totalItems` を、`CardApplicationController` の一覧に `keyword`・`page` のパラメーターとそのチェック（contracts 6 のメッセージ）を足す。T062 が green になり、Must の一覧のテスト（T023）も green のまま
+- [x] T066 [US4] `{fe}/api.ts` の `list` に `keyword`・`page` を、`{fe}/types.ts` に3つの項目を、`{fe}/ApplicationList.tsx` にキーワードの入力欄とページの切り替えを足す。T063 が green になり、T053 も green のまま
+
+**T061〜T066 の記録（2026-11-25）**
+
+- Must のテストを2か所だけ変えた（research.md R13 の「Must のテストは変えずに済む」は、この2か所では成り立たなかった）。どちらも、確かめる中身は変えず、Should で足したものを比べる対象から外しただけ：
+  - `CardApplicationApiTest`「該当する申込がないときは空のitemsを返す」：本文全体を `{"items":[]}` と比べていたので、`$.items` が空であることを比べる形にした
+  - `ApplicationList.test.tsx` の3つの `toHaveBeenLastCalledWith('')`・`('UNDER_REVIEW')`：`list` の2つ目の引数（キーワードとページ）が増えたので、1つ目の引数（状態）だけを比べる形にした
+- `list` は、タスクの `list({ status, keyword, page })` ではなく、Must の `list(status)` に2つ目の引数 `{ keyword, page }` を足す形にした（Must の呼び方とテストを残すため）
+- `page` は、半角数字の9桁まで（`int` に収まる範囲）を受け付け、それより長いものは 400 にした（500 にしないため）。先頭の0（`01`）は受け付ける。空（`?page=`）は省略と同じ1
+- 状態・キーワード・ページの誤りは、まとめて1つの 400 で返す（Must の `status` だけのときと同じ本文の形）
+- 画面：状態かキーワード（「検索」を押したとき）を変えたら1ページ目に戻る。キーワードは入力しただけでは読み直さない。`types.ts` の3つの項目は、Should を外しやすいよう省略できる形にした（ないときはページの切り替えを出さない）
 
 ### 画面の直し（Must の PR の前に見つけたもの。2026-11-25 に足した）
 
@@ -273,23 +283,95 @@ Must の画面の目視（ユーザー、T072）と、PR 前のコードレビ�
 
 **目視で見つけたもの（既知の4件）**
 
-- [ ] T076 [P] [US2] 一覧の「新規登録」ボタンと、「状態」の絞り込みの行の間にすき間を空ける（`{fe}/ApplicationPage.tsx`・`frontend/src/index.css`）。すき間は `tokens.css` の `--space-*` を使い、新しい値を作らない
-- [ ] T077 [P] [US2] 申込の詳細の項目の値を、年収も含めてすべて左寄せにし、ラベルの列の幅をそろえる（登録のフォームと同じ形。`--form-label-width` と同じ考え方）。返済表と、分割払い・リボ払いの要約（`InstallmentSummary.tsx`・`RevolvingSummary.tsx` の `.summary`）の右寄せは変えない。原因は `.summary > div` の `justify-content: space-between` なので、`.summary` そのものは変えず、詳細の `dl`（`{fe}/ApplicationDetail.tsx`）にだけ別のクラスを付ける。分割払い・リボ払いの画面が変わらないことも画面で確かめる
-- [ ] T078 [P] [US3] ほかの担当者とぶつかったとき（409）、`title`「ほかの担当者が先に状態を変えました」も画面に出す（いまは `detail` だけ。contracts 4）。`{fe}/api.ts` の `conflict` に `title` を持たせ（本文にないときは決まった文）、`{fe}/StatusChangeForm.tsx` で `title` と `detail` を出す。先に `api.test.ts`・`StatusChangeForm.test.tsx` に、`title` が出ることのテストを足す
-- [ ] T079 [P] [US2] 幅 360px のとき、変更履歴の表を横にスクロールさせ、変更日時・「変更前 → 変更後」・担当者名は言葉の途中で折り返さない（`{fe}/ApplicationDetail.tsx`・`frontend/src/index.css`）。否決の理由の列は折り返してよい。返済表（`.schedule-table`・`.table-wrap`）の見た目は変えない。一覧の表も同じように見え方を確かめる
+- [x] T076 [P] [US2] 一覧の「新規登録」ボタンと、「状態」の絞り込みの行の間にすき間を空ける（`{fe}/ApplicationPage.tsx`・`frontend/src/index.css`）。すき間は `tokens.css` の `--space-*` を使い、新しい値を作らない
+- [x] T077 [P] [US2] 申込の詳細の項目の値を、年収も含めてすべて左寄せにし、ラベルの列の幅をそろえる（登録のフォームと同じ形。`--form-label-width` と同じ考え方）。返済表と、分割払い・リボ払いの要約（`InstallmentSummary.tsx`・`RevolvingSummary.tsx` の `.summary`）の右寄せは変えない。原因は `.summary > div` の `justify-content: space-between` なので、`.summary` そのものは変えず、詳細の `dl`（`{fe}/ApplicationDetail.tsx`）にだけ別のクラスを付ける。分割払い・リボ払いの画面が変わらないことも画面で確かめる
+- [x] T078 [P] [US3] ほかの担当者とぶつかったとき（409）、`title`「ほかの担当者が先に状態を変えました」も画面に出す（いまは `detail` だけ。contracts 4）。`{fe}/api.ts` の `conflict` に `title` を持たせ（本文にないときは決まった文）、`{fe}/StatusChangeForm.tsx` で `title` と `detail` を出す。先に `api.test.ts`・`StatusChangeForm.test.tsx` に、`title` が出ることのテストを足す
+- [x] T079 [P] [US2] 幅 360px のとき、変更履歴の表を横にスクロールさせ、変更日時・「変更前 → 変更後」・担当者名は言葉の途中で折り返さない（`{fe}/ApplicationDetail.tsx`・`frontend/src/index.css`）。否決の理由の列は折り返してよい。返済表（`.schedule-table`・`.table-wrap`）の見た目は変えない。一覧の表も同じように見え方を確かめる
+
+**T076〜T079 の記録（2026-11-25）**
+
+- T078：`api.test.ts`・`StatusChangeForm.test.tsx` のテストを先に足して red を確かめ、直して green。409 の本文に `title` がないときは「ほかの担当者が先に状態を変えました」を出す
+- T076・T077・T079：見た目だけの直しで、jsdom では確かめられない。この環境にはブラウザーがないので、**直す前と後の画面の確認はまだしていない**（チェックはまだ付けない。人が画面で確かめたら付ける）。直した内容：
+  - T076：一覧の「新規登録」を `.page-actions`（`margin-bottom: var(--space-4)`）で囲んだ（`ApplicationPage.tsx`・`index.css`）
+  - T076 の続き（2026-11-25、ユーザーの画面の確認で見つかったもの）：「状態」の行と表の間、409 のエラーの枠と「担当者名」の行の間にもすき間がなかった。
+    1か所ずつ直さず、`index.css` の `.stack > * + * { margin-top: var(--space-4) }` だけで「部品と部品の間のすき間」を決める形にした。
+    `.stack` は申込管理のタブ全体（`ApplicationPage.tsx`）と状態の変更（`StatusChangeForm.tsx` の `section`）に付けた。`.page-actions` と `.pager` の `margin-top` は消した。
+    分割払い・リボ払いの画面は `.stack` を使わず、今回変えた CSS（`.stack`・`.search-field`・`.pager`）もそこでは使っていないので、見た目は変わらない（画面での確認はユーザー）。
+    一覧の「検索」ボタンが `auto` の列いっぱいに伸びていたので、`justify-self: start` で文字に合わせた幅にした
+- 状態の変更の不具合（2026-11-25、ユーザーの画面の確認で見つかったもの）：審査中で何も入力せずに「決定する」を押すと、「承認か否決を選んでください」だけが出て、担当者名の誤りが出なかった（画面で止めて API を呼んでいなかった）。
+  登録（FR-003）と同じく誤りを一度に出すため、選んでいなくても `toStatus` を空で送り、サーバーが返す誤り（`toStatus`・`staffName`・`rejectionReason`）をすべてそれぞれの欄の下に出すようにした。
+  `toStatus` の誤りは、審査の結果を選んでいないときは選ぶ欄の下に「承認か否決を選んでください」と出す。選んだらその誤りだけを消す。
+  `StatusChangeForm.test.tsx` にテストを先に足し、red（API を呼ばない）を確かめてから直した。「審査中にする」で担当者名の誤りが出ることのテストも足した
+  - T077：詳細の `dl` に `.detail-summary` を足し、`justify-content: flex-start` と、`dt` の幅 `var(--form-label-width)` にした。`.summary` そのものは変えていない
+  - T079：変更履歴の表に `.history-table` を足し、セルを `white-space: nowrap` に、否決の理由の列だけ折り返す（最小の幅 `var(--form-input-width)`）。横のスクロールは今の `.table-wrap` のまま。`.schedule-table`・`.table-wrap` は変えていない
 
 **レビューで見つけたもの（Minor 2〜6）**
 
-- [ ] T080 [P] [US3] 否決の理由（500文字まで）の入力欄を、1行の `<input type="text">` から `<textarea>` にする（`{fe}/StatusChangeForm.tsx`）。ラベル・`aria-invalid`・`aria-describedby`・エラーの表示は今と同じにする。先に `StatusChangeForm.test.tsx` に、理由の欄が複数行の入力欄（`textbox` で `<textarea>`）であることのテストを足す
-- [ ] T081 [US3] 承認・否決を押し間違えたときの守りを足す。いまは、理由を入れたまま「承認する」を押すと、理由は保存されずに捨てられ（contracts 4 のとおり）、取り消せない承認・否決に確認もない。やり方（確認のダイアログを出す、または否決を選んだときだけ理由の欄を出す、など）は、着手の前に人が決める。決めたやり方で、先に `StatusChangeForm.test.tsx` にテストを足す
-- [ ] T082 `common/web/ApiExceptionHandler.java` が、機能のパッケージ（`cardapplication.service`）の例外（`ApplicationNotFoundException`・`StatusConflictException`）を import している。依存の向きが共通 → 機能と逆なので、機能ごとの `@RestControllerAdvice`（`{main}/{ca}/web/` に置く）に分けるか、共通の例外の型を作る（どちらにするかは着手の前に決める。plan.md の構成の文も合わせて直す）。`CardApplicationApiTest` の 404・409 のテストと、分割払い・リボ払いの API のテストが、変えずに green のままであること
-- [ ] T083 [P] [US2] 一覧と詳細の読み込み中に、読み込み中であることが分かる表示を出す（`{fe}/ApplicationList.tsx`・`{fe}/ApplicationDetail.tsx`。いまは、詳細は「一覧に戻る」ボタンだけ、一覧は表がまだない）。先に、API の応答を待たせたまま表示を確かめるテストを足す。読み込みが終わったら消えることも確かめる
-- [ ] T084 [US3] ほかの担当者とぶつかった（409）あとの読み直しが失敗したとき、詳細の画面全体を「詳細を読み込めませんでした」に変えず、今の詳細と 409 のメッセージを残したまま、読み直せなかったことを知らせる（`{fe}/ApplicationDetail.tsx`）。先に `ApplicationDetail.test.tsx` に、2回目の `getDetail` が `unexpectedError` のときのテストを足す
+- [x] T080 [P] [US3] 否決の理由（500文字まで）の入力欄を、1行の `<input type="text">` から `<textarea>` にする（`{fe}/StatusChangeForm.tsx`）。ラベル・`aria-invalid`・`aria-describedby`・エラーの表示は今と同じにする。先に `StatusChangeForm.test.tsx` に、理由の欄が複数行の入力欄（`textbox` で `<textarea>`）であることのテストを足す
+- [x] T081 [US3] 承認・否決を押し間違えたときの守りを足す。いまは、理由を入れたまま「承認する」を押すと、理由は保存されずに捨てられ（contracts 4 のとおり）、取り消せない承認・否決に確認もない。やり方（確認のダイアログを出す、または否決を選んだときだけ理由の欄を出す、など）は、着手の前に人が決める。決めたやり方で、先に `StatusChangeForm.test.tsx` にテストを足す
+- [ ] T082 【次のスプリントに送る（2026-11-25 にユーザーが決定）。`common` に共通の例外の型を置き、各機能が継承する形にする。下の記録を参照】`common/web/ApiExceptionHandler.java` が、機能のパッケージ（`cardapplication.service`）の例外（`ApplicationNotFoundException`・`StatusConflictException`）を import している。依存の向きが共通 → 機能と逆なので、機能ごとの `@RestControllerAdvice`（`{main}/{ca}/web/` に置く）に分けるか、共通の例外の型を作る（どちらにするかは着手の前に決める。plan.md の構成の文も合わせて直す）。`CardApplicationApiTest` の 404・409 のテストと、分割払い・リボ払いの API のテストが、変えずに green のままであること
+- [x] T083 [P] [US2] 一覧と詳細の読み込み中に、読み込み中であることが分かる表示を出す（`{fe}/ApplicationList.tsx`・`{fe}/ApplicationDetail.tsx`。いまは、詳細は「一覧に戻る」ボタンだけ、一覧は表がまだない）。先に、API の応答を待たせたまま表示を確かめるテストを足す。読み込みが終わったら消えることも確かめる
+- [x] T084 [US3] ほかの担当者とぶつかった（409）あとの読み直しが失敗したとき、詳細の画面全体を「詳細を読み込めませんでした」に変えず、今の詳細と 409 のメッセージを残したまま、読み直せなかったことを知らせる（`{fe}/ApplicationDetail.tsx`）。先に `ApplicationDetail.test.tsx` に、2回目の `getDetail` が `unexpectedError` のときのテストを足す
 
 **2回目のレビューで見つけたもの（Minor 1・2）**
 
-- [ ] T085 [US3] 状態の変更が成功したあと、フォーカスを変わった状態の近く（例：見出し「状態の変更」か、状態の表示に `tabIndex={-1}` を付けてそこ）に移す（`{fe}/StatusChangeForm.tsx`・`{fe}/ApplicationDetail.tsx`）。いまは、押したボタンが成功で消えるので、フォーカスが body に落ち、キーボードの利用者はページの先頭からたどり直すことになる。移す先は、T081（押し間違えの守り）と一緒に、着手の前に人が決める。先に `ApplicationDetail.test.tsx` に、成功のあとのフォーカスの先を確かめるテストを足す
-- [ ] T086 [P] [US3] 成功したあと、取り消せない決定のボタンにフォーカスが勝手に移らないことを守るテストを `{fe}/ApplicationDetail.test.tsx` に足す：「審査中にする」が成功して「承認する」「否決する」が出たあと、どちらにもフォーカスがない（T085 を直したあとは、T085 で決めた先にある）。いまの実装で満たしているので、書いた時点で通る。2026-11-25 に直す前の形（フォーカスを戻す先をいつも1つ目のボタンにする）に一時的に戻して、このテストが失敗することを確かめてから元に戻す
+- [x] T085 [US3] 状態の変更が成功したあと、フォーカスを変わった状態の近く（例：見出し「状態の変更」か、状態の表示に `tabIndex={-1}` を付けてそこ）に移す（`{fe}/StatusChangeForm.tsx`・`{fe}/ApplicationDetail.tsx`）。いまは、押したボタンが成功で消えるので、フォーカスが body に落ち、キーボードの利用者はページの先頭からたどり直すことになる。移す先は、T081（押し間違えの守り）と一緒に、着手の前に人が決める。先に `ApplicationDetail.test.tsx` に、成功のあとのフォーカスの先を確かめるテストを足す
+- [x] T086 [P] [US3] 成功したあと、取り消せない決定のボタンにフォーカスが勝手に移らないことを守るテストを `{fe}/ApplicationDetail.test.tsx` に足す：「審査中にする」が成功して「承認する」「否決する」が出たあと、どちらにもフォーカスがない（T085 を直したあとは、T085 で決めた先にある）。いまの実装で満たしているので、書いた時点で通る。2026-11-25 に直す前の形（フォーカスを戻す先をいつも1つ目のボタンにする）に一時的に戻して、このテストが失敗することを確かめてから元に戻す
+
+**T080・T083・T084・T086 の記録（2026-11-25）**
+
+- T080：テストを先に足して red（`INPUT`）を確かめ、`<textarea rows={3}>` にした。`index.css` の `.form-field > input` などの決まりに `textarea` も足した（見た目は画面での確認待ち）
+- T083：一覧・詳細とも、最初の読み込みのあいだ `role="status"` で「読み込み中です」を出す。絞り込みを変えて読み直すあいだは、前の表を出したまま（「読み込み中です」は出さない）
+- T084：409 のあとの読み直しが失敗したら、今の詳細と 409 のメッセージ・担当者名を残し、「最新の状態を読み込めませんでした。一覧に戻って、開き直してください」を出す。そのあと変更が成功したら、この知らせは消す
+- T086：書いた時点で通ることを確かめ、`StatusChangeForm.tsx` を一時的に「いつも1つ目のボタンにフォーカスを戻す」形にして、このテスト（と、既存の「否決する」のテスト）が失敗することを確かめてから元に戻した
+- T081・T082・T085 は、着手の前に人がやり方を決めるタスクなので、この時点では手を付けなかった（下の記録を参照）
+
+**T081・T082・T085 の記録（2026-11-25。やり方はユーザーが決めた）**
+
+- T081：承認・否決は「選んでから決定する」2段階にした。ラジオボタン「承認」「否決」（見出し「審査の結果」）と「決定する」のボタン1つ。最初はどちらも選ばない。
+  否決の理由（textarea）は「否決」を選んだときだけ出し、承認のときは理由を送らない（いままでは、理由を入れたまま承認すると黙って捨てていた）。
+  何も選ばずに「決定する」を押すと、選ぶ欄の下に「承認か否決を選んでください」を出し、API は呼ばない
+  （**のちに変更**：担当者名の誤りも一度に出すため、選んでいなくても `toStatus` を空で送り、サーバーの誤りをまとめて出す形にした。「T076〜T079 の記録」の「状態の変更の不具合」を参照）。申込 → 審査中は取り消せる段階なので、今までどおり「審査中にする」のボタン1回で変える。
+  `statusLabels.ts` の審査中の `label` を「承認」「否決」に変えた。research.md R12 と quickstart.md 5 の #9 の文も合わせて直した
+- T085：成功したら「○○に変更しました」（○○は変更後の状態の表示名）を `role="status"`・`tabIndex={-1}` で出し、そこにフォーカスを移す。次に押したときに消す。
+  `StatusChangeForm.test.tsx`（3つの変更）・`ApplicationDetail.test.tsx` にテストを足し、red を確かめてから直した。
+  フォーカスを移す処理を一時的に外すと、フォーカスが「決定する」（取り消せない決定のボタン）に落ちて、T086 のテストも失敗することを確かめた
+- T082：**今回は直さない**（ユーザーが決めた）。次のスプリントで「`common` に共通の例外の型を置き、各機能の例外（`ApplicationNotFoundException`・`StatusConflictException` など）がそれを継承する」形にする。
+  そのとき `ApiExceptionHandler` は共通の型だけを import し、plan.md の構成の文も合わせて直す
+
+**PR 前の確認（pre-pr-check）の指摘の記録（2026-11-25。直すものと保留するものはユーザーが決めた）**
+
+- Important 1（直した）：51文字のキーワードで検索すると、サーバーの「キーワードは50文字以内で入力してください」が捨てられ、
+  「一覧を読み込めませんでした。もう一度お試しください」が出て表も消えていた。キーワード・ページ（と状態）の入力の誤り（400）は、
+  キーワードの欄の下・ページの切り替えの下（状態は選ぶ欄の下）に赤字で出し、前に読めた表とページの切り替えは残すようにした（`{fe}/ApplicationList.tsx`。
+  誤りを返す項目の型 `ListField` を `{fe}/types.ts` に足した）。`ApplicationListSearch.test.tsx` にテストを先に足し、red（予期しないエラーの文が出る）を確かめてから直した
+- Important 2・I1・I2（直した）：research.md R12（選ばずに「決定する」を押したとき）・R13（画面の誤りの出し方、Must のテストを2か所変えたこと）、
+  この tasks.md の T081 の記録、plan.md の `StatusChangeForm.tsx` の説明を、今の実装に合わせた
+
+**次のスプリントで検討（保留。2026-11-25 にユーザーが決定）**
+
+PR 前の確認（pre-pr-check）のコードレビューと `/speckit-analyze` で見つかったもの。今回は直さない。
+
+- Minor 1：`{fe}/api.ts` の `CONFLICT_TITLE` の上に、古い JSDoc（「409 の本文に detail がないときに出す文」）が、新しい `//` のコメントと重なって残っている。JSDoc の方を消す
+- Minor 2：`\` を探すテスト（`CardApplicationSearchRepositoryTest`）が、エスケープしなくても通る（パターン `%\%` は「`%` で終わる文字列」になり、データにも当たらないので空のまま通る）。`\` を含む申込を入れ、それだけが見つかる形にする
+- Minor 3：キーワードの50文字をコードポイントで数えることのテスト（`"𠮷".repeat(50)` が 200 になる）がない（research.md R9）
+- Minor 4：ほかの人の操作で件数が減ったあと、古い画面で「次へ」を押すと、最後のページより後を読んで「該当する申込はありません」が出て、ページの切り替えも消える。`items` が空でも `totalItems > 0` なら「前へ」を出すか、最後のページを読み直す
+- Minor 5：審査の結果のラジオボタン自身に `aria-invalid` がない（`aria-describedby` は fieldset にだけ付けている）。スクリーンリーダーによっては、ラジオボタンに移ったときに誤りが読まれない
+- Minor 6：送信中もラジオボタンと担当者名を変えられる（ボタンだけ押せなくしている）。fieldset などに `disabled={submitting}` を付ける
+- Minor 7：`CardApplicationService.list`・`CardApplicationRepository.findAll` が本番のコードから呼ばれなくなった。Should を外すときに戻す先として残しているので、その意図を JavaDoc に書く
+- Minor 8：件数（`count(*)`）と一覧を別の `SELECT` で読んでいるので、間に登録が入ると `totalItems` と `items` が1件ずれることがある（100件規模では実害はほぼない）。必要なら `count(*) OVER()` で1回にまとめる
+- C1（`/speckit-analyze`）：テストに、R11 で決めた架空の値以外の値がある（漢字の「テスト タロウ」「テスト%太郎」など）。どれも明らかに架空なので原則IV の違反ではないが、T061 の指示と R11 の決まりがもともと食い違っている。どちらに合わせるかを決める
+
+- Minor 7 と一緒に扱う（2026-11-25 にユーザーが決定）：Should の変更で、バックエンドの行のカバレッジが1行だけ落ちた（`CardApplicationService.java` の `list` の `return repository.findAll(status);`。
+  一覧の API が `search` を呼ぶようになり、本番のコードから呼ばれなくなったため）。Should を外すときの戻り先として、この1行は残す。
+  次のスプリントで、JavaDoc に意図を書くか、`list` を消すかを決める
+
+**カバレッジと画面の確認の記録（2026-11-25）**
+
+- `CardApplicationController.parsePage` の「空（`?page=`）は1ページ目」の分岐にテストがなかった（分岐のカバレッジが1つ落ちていた）。
+  `CardApplicationSearchApiTest` に「ページが空なら1ページ目を返す」を足し、空の判定（`page.isEmpty()`）を一時的に外すと 400 になって失敗することを確かめてから、元に戻した
+- 画面の確認（ユーザー、2026-11-25）：すき間（`.stack`）、「検索」ボタンの幅、ラジオボタン（T081）、キーワードのエラー（PR 前の確認の Important 1）、T076・T077・T079 は、すべて問題なし。
+  分割払い・リボ払いの画面も変わっていない。T076・T077・T079 にチェックを付けた
 
 **Checkpoint**: quickstart.md 7 を確かめられる。T076〜T086 を直したときは、quickstart.md 5 の画面の確認（特に #1・#3・#7・#12・#14）をもう一度行う。
 

@@ -87,6 +87,25 @@ describe('呼び出し方（contracts の URL・メソッド・本文）', () =>
     )
   })
 
+  // 【Should】キーワード検索とページ分け（contracts 6）
+  test('list はキーワードとページを付けて GET し、キーワードはエンコードする', async () => {
+    const fetchMock = stubFetch(Response.json({ items: [] }))
+
+    await list('APPLIED', { keyword: 'タロウ&x', page: 2 })
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/card-applications?status=APPLIED&keyword=%E3%82%BF%E3%83%AD%E3%82%A6%26x&page=2',
+    )
+  })
+
+  test('list はキーワードが空ならキーワードを付けない', async () => {
+    const fetchMock = stubFetch(Response.json({ items: [] }))
+
+    await list('', { keyword: '', page: 1 })
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/card-applications?page=1')
+  })
+
   test('getDetail は申込番号の詳細を GET する', async () => {
     const fetchMock = stubFetch(Response.json(detail))
 
@@ -154,25 +173,27 @@ describe('結果の種類', () => {
     await expect(getDetail('A99999999')).resolves.toEqual({ kind: 'notFound' })
   })
 
-  test('409 は conflict で、detail を持つ', async () => {
+  test('409 は conflict で、title と detail を持つ', async () => {
     stubFetch(
       problem(409, {
-        title: 'ほかの担当者が先に状態を変えました',
-        detail: '最新の状態を確かめてから、もう一度操作してください',
+        title: '本文のtitle',
+        detail: '本文のdetail',
       }),
     )
 
     await expect(changeStatus('A00000001', statusChange)).resolves.toEqual({
       kind: 'conflict',
-      detail: '最新の状態を確かめてから、もう一度操作してください',
+      title: '本文のtitle',
+      detail: '本文のdetail',
     })
   })
 
-  test('409 で detail がないときも、決まった文で conflict を返す', async () => {
-    stubFetch(problem(409))
+  test('409 で title・detail がないときも、決まった文で conflict を返す', async () => {
+    stubFetch(Response.json({ status: 409 }, { status: 409 }))
 
     await expect(changeStatus('A00000001', statusChange)).resolves.toEqual({
       kind: 'conflict',
+      title: 'ほかの担当者が先に状態を変えました',
       detail: '最新の状態を確かめてから、もう一度操作してください',
     })
   })

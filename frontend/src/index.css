@@ -120,12 +120,14 @@ body {
 
 .form-field > input,
 .form-field > select,
+.form-field > textarea,
 .form-field > .field-error {
   grid-column: 2;
 }
 
 .form-field > input,
-.form-field > select {
+.form-field > select,
+.form-field > textarea {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border-strong);
@@ -136,7 +138,8 @@ body {
 }
 
 .form-field > input[aria-invalid='true'],
-.form-field > select[aria-invalid='true'] {
+.form-field > select[aria-invalid='true'],
+.form-field > textarea[aria-invalid='true'] {
   border: 2px solid var(--color-error);
 }
 
@@ -304,8 +307,126 @@ body {
   background: var(--color-row-alt);
 }
 
+/*
+ * 申込の詳細の項目（003 の T077）。分割払い・リボ払いの要約（.summary）は値を右寄せにするが、
+ * 詳細では、登録のフォームと同じく、ラベルの列の幅をそろえて値を左寄せにする
+ */
+.detail-summary > div {
+  justify-content: flex-start;
+}
+
+.detail-summary dt {
+  flex: 0 0 var(--form-label-width);
+}
+
+/*
+ * 申込の変更履歴の表（003 の T079）。狭い画面では表を横に動かし、変更日時・「変更前 → 変更後」・担当者名は
+ * 言葉の途中で折り返さない。否決の理由（最後の列）だけは折り返してよいが、1文字ずつにならない幅を取る
+ */
+.history-table th,
+.history-table td {
+  white-space: nowrap;
+}
+
+.history-table th:last-child,
+.history-table td:last-child {
+  min-width: var(--form-input-width);
+  white-space: normal;
+}
+
+/*
+ * 承認・否決を選ぶ欄（003 の T081）。登録のフォームと同じく、見出し（legend）をラベルの列に、
+ * 選択肢を入力欄の列に置く。狭い画面では見出しを上に置く
+ */
+.radio-field {
+  display: grid;
+  grid-template-columns: var(--form-label-width) var(--form-input-width);
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.radio-field > legend {
+  float: left;
+  grid-column: 1;
+  padding: 0;
+  font-weight: bold;
+}
+
+.radio-field > .radio-options,
+.radio-field > .field-error {
+  grid-column: 2;
+}
+
+.radio-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.radio-options > label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+}
+
+/* 成功の知らせ（003 の T085）。フォーカスを移すので、フォーカスの輪が見えるようにする */
+.notice[role='status']:focus-visible,
+.notice[role='status']:focus {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* 【Should】申込の一覧のキーワード検索（003 の R13）。「検索」は入力欄の右に置く */
+.search-field {
+  grid-template-columns: var(--form-label-width) var(--form-input-width) auto;
+}
+
+/* auto の列は余った幅まで広がるので、ボタンは文字に合わせた幅にする（ほかのボタンと同じ） */
+.search-field > button {
+  grid-column: 3;
+  justify-self: start;
+}
+
+/* 【Should】一覧のページの切り替え（「前へ」「n / m ページ」「次へ」） */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/*
+ * 部品と部品の間のすき間（003 の T076 の続き）。すき間はここだけで決める。
+ * .stack の中で隣り合う部品（ボタン・絞り込みの行・表・エラーの枠・フォームなど）の間に var(--space-4) を空ける。
+ * ほかの部品の決まりより後に置き、部品が自分で持つ上の余白より優先する（下の余白とは重なって大きい方になる）。
+ * 申込管理の画面だけで使い、分割払い・リボ払いの画面では使わない（見た目を変えないため）
+ */
+.stack > * + * {
+  margin-top: var(--space-4);
+}
+
 /* 狭い画面では、ラベルを入力欄の上に置く */
 @media (max-width: 36rem) {
+  .search-field > button {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .radio-field {
+    grid-template-columns: 1fr;
+  }
+
+  .radio-field > legend,
+  .radio-field > .radio-options,
+  .radio-field > .field-error {
+    grid-column: 1;
+  }
+
   .panel {
     padding: var(--space-4);
   }
@@ -317,6 +438,7 @@ body {
   .form-field > label,
   .form-field > input,
   .form-field > select,
+  .form-field > textarea,
   .form-field > .field-error {
     grid-column: 1;
   }

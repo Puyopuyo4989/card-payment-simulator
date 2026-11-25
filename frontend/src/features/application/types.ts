@@ -29,7 +29,15 @@ export type ApplicationSummary = {
 
 export type ApplicationList = {
   items: ApplicationSummary[]
+  // 【Should】ページ分け（contracts 6）。API はいつも返すが、Should を外すときに
+  // この3つを消すだけで済むよう、省略できる形にしておく（ないときはページの切り替えを出さない）
+  page?: number
+  totalPages?: number
+  totalItems?: number
 }
+
+/** 一覧の API が誤りを返す項目（contracts 2・6）。keyword・page は【Should】 */
+export type ListField = 'status' | 'keyword' | 'page'
 
 /** 変更履歴の1行（contracts 3）。否決でない行の rejectionReason は null */
 export type StatusHistory = {
@@ -71,5 +79,5 @@ export type ApiOutcome<R, F extends string> =
   | { kind: 'success'; result: R }
   | { kind: 'inputError'; errors: FieldError<F>[] }
   | { kind: 'notFound' }
-  | { kind: 'conflict'; detail: string }
+  | { kind: 'conflict'; title: string; detail: string }
   | { kind: 'unexpectedError' }

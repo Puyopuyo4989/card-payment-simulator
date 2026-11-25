@@ -10,7 +10,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -28,6 +30,9 @@ public class CardApplicationRepository {
                    phone_number, status, applied_at, updated_at, version
               FROM card_application
             """;
+
+    /** 【Should】1ページの件数（research.md R13。固定）。 */
+    public static final int PAGE_SIZE = 20;
 
     private final JdbcClient jdbcClient;
 
@@ -119,6 +124,48 @@ public class CardApplicationRepository {
                 .param("status", status.get().name())
                 .query(CardApplicationRepository::toApplication)
                 .list();
+    }
+
+    /** 【Should】キーワードと状態で絞り込み、page ページ目（1から）を返す（research.md R13）。 */
+    public CardApplicationSearchResult search(
+            Optional<ApplicationStatus> status, Optional<String> keyword, int page) {
+        StringBuilder where = new StringBuilder(" WHERE TRUE");
+        Map<String, Object> params = new HashMap<>();
+        status.ifPresent(s -> {
+            where.append(" AND status = :status");
+            params.put("status", s.name());
+        });
+        keyword.ifPresent(k -> {
+            where.append(
+                    " AND (name_kanji ILIKE :pattern ESCAPE '\\'"
+                            + " OR name_kana ILIKE :pattern ESCAPE '\\'"
+                            + " OR application_number ILIKE :pattern ESCAPE '\\')");
+            params.put("pattern", "%" + escapeLike(k) + "%");
+        });
+        long totalItems =
+                jdbcClient
+                        .sql("SELECT count(*) FROM card_application" + where)
+                        .params(params)
+                        .query(Long.class)
+                        .single();
+        List<CardApplication> items =
+                jdbcClient
+                        .sql(
+                                SELECT_COLUMNS
+                                        + where
+                                        + " ORDER BY applied_at DESC, application_number DESC"
+                                        + " LIMIT :limit OFFSET :offset")
+                        .params(params)
+                        .param("limit", PAGE_SIZE)
+                        .param("offset", (long) (page - 1) * PAGE_SIZE)
+                        .query(CardApplicationRepository::toApplication)
+                        .list();
+        return new CardApplicationSearchResult(items, page, totalItems);
+    }
+
+    /** LIKE の特別な文字（\・%・_）を、文字そのものとして探すようにエスケープする。 */
+    private static String escapeLike(String keyword) {
+        return keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     /** 申込の変更履歴。変更日時の古い順で、同じ日時なら入れた順（spec FR-018）。 */

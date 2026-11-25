@@ -5,6 +5,7 @@ import type {
   ApplicationStatus,
   CardApplicationRequest,
   FieldError,
+  ListField,
   RegistrationField,
   StatusChangeField,
   StatusChangeRequest,
@@ -13,6 +14,8 @@ import type {
 const BASE = '/api/card-applications'
 
 /** 409 の本文に detail がないときに出す文（contracts 4 の detail と同じ） */
+// 409 の本文に title・detail がないときに出す文（contracts 4 と同じ）
+const CONFLICT_TITLE = 'ほかの担当者が先に状態を変えました'
 const CONFLICT_DETAIL = '最新の状態を確かめてから、もう一度操作してください'
 
 /** POST /api/card-applications（contracts 1）。入力は変換しないで、文字列のまま送る */
@@ -25,10 +28,26 @@ export function register(
 /** GET /api/card-applications（contracts 2）。状態が空なら付けない（すべて） */
 export function list(
   status: ApplicationStatus | '' = '',
-): Promise<ApiOutcome<ApplicationList, 'status'>> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  search?: ListSearch,
+): Promise<ApiOutcome<ApplicationList, ListField>> {
+  const params = new URLSearchParams()
+  if (status) {
+    params.set('status', status)
+  }
+  // 【Should】キーワードとページ（contracts 6）
+  if (search?.keyword) {
+    params.set('keyword', search.keyword)
+  }
+  if (search) {
+    params.set('page', String(search.page))
+  }
+  const encoded = params.toString()
+  const query = encoded ? `?${encoded}` : ''
   return call(`${BASE}${query}`)
 }
+
+/** 【Should】一覧のキーワード（空なら絞り込まない）とページ（1から） */
+export type ListSearch = { keyword: string; page: number }
 
 /** GET /api/card-applications/{applicationNumber}（contracts 3） */
 export function getDetail(
@@ -57,6 +76,7 @@ function postJson(body: unknown): RequestInit {
 }
 
 type ProblemBody<F extends string> = {
+  title?: string
   detail?: string
   errors?: FieldError<F>[]
 }
@@ -80,7 +100,11 @@ async function call<R, F extends string>(
     if (response.status === 400 || response.status === 409) {
       const body: ProblemBody<F> = await response.json()
       if (response.status === 409) {
-        return { kind: 'conflict', detail: body.detail ?? CONFLICT_DETAIL }
+        return {
+          kind: 'conflict',
+          title: body.title ?? CONFLICT_TITLE,
+          detail: body.detail ?? CONFLICT_DETAIL,
+        }
       }
       // errors のない 400（本文が JSON として読めない）は、画面からは起きないので予期しないエラーとする
       if (body.errors) {

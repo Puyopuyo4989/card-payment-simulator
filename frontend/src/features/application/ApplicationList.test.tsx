@@ -71,7 +71,8 @@ test('状態の選択肢は「すべて」と4つの状態で、最初は「す�
   expect(select).toHaveValue('')
   await screen.findByRole('table')
   expect(listMock).toHaveBeenCalledTimes(1)
-  expect(listMock).toHaveBeenLastCalledWith('')
+  // 状態（1つ目の引数）だけを確かめる。2つ目は Should のキーワードとページ（ApplicationListSearch.test.tsx）
+  expect(listMock.mock.lastCall?.[0]).toBe('')
 })
 
 test('状態を選ぶと絞り込んで呼び直し、「すべて」に戻すと状態なしで呼ぶ', async () => {
@@ -85,7 +86,7 @@ test('状態を選ぶと絞り込んで呼び直し、「すべて」に戻す�
     '審査中',
   )
 
-  expect(listMock).toHaveBeenLastCalledWith('UNDER_REVIEW')
+  expect(listMock.mock.lastCall?.[0]).toBe('UNDER_REVIEW')
   expect(await screen.findAllByRole('row')).toHaveLength(2)
   expect(screen.queryByText('A00000003')).not.toBeInTheDocument()
 
@@ -95,7 +96,7 @@ test('状態を選ぶと絞り込んで呼び直し、「すべて」に戻す�
     'すべて',
   )
 
-  expect(listMock).toHaveBeenLastCalledWith('')
+  expect(listMock.mock.lastCall?.[0]).toBe('')
   expect(await screen.findByText('A00000003')).toBeInTheDocument()
 })
 
@@ -164,4 +165,22 @@ test('一覧を開くたびに API を呼び、最新の状態を出す', async 
 
   expect(await screen.findByText('承認')).toBeInTheDocument()
   expect(listMock).toHaveBeenCalledTimes(2)
+})
+
+test('読み込みが終わるまでは「読み込み中です」を出し、終わったら消す', async () => {
+  let resolve: (value: ApiOutcome<ListResult, 'status'>) => void = () => {}
+  listMock.mockReturnValue(
+    new Promise((r) => {
+      resolve = r
+    }),
+  )
+  render(<ApplicationList onSelect={vi.fn()} />)
+
+  expect(screen.getByRole('status')).toHaveTextContent('読み込み中です')
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+  resolve(success(items))
+
+  expect(await screen.findByRole('table')).toBeInTheDocument()
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })

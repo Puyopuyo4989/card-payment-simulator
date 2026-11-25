@@ -21,6 +21,7 @@ export default function ApplicationDetail({
   onBack,
 }: Props) {
   const [outcome, setOutcome] = useState<ApiOutcome<Detail, never> | null>(null)
+  const [reloadFailed, setReloadFailed] = useState(false)
 
   useEffect(() => {
     let current = true
@@ -41,7 +42,12 @@ export default function ApplicationDetail({
   )
 
   if (outcome === null) {
-    return backButton
+    return (
+      <>
+        {backButton}
+        <p role="status">読み込み中です</p>
+      </>
+    )
   }
   if (outcome.kind !== 'success') {
     return (
@@ -61,7 +67,7 @@ export default function ApplicationDetail({
     <>
       {backButton}
       <h2>申込番号 {detail.applicationNumber}</h2>
-      <dl className="summary">
+      <dl className="summary detail-summary">
         <Item term="氏名（漢字）">{detail.nameKanji}</Item>
         <Item term="氏名（カナ）">{detail.nameKana}</Item>
         <Item term="生年月日">{detail.birthDate}</Item>
@@ -79,7 +85,10 @@ export default function ApplicationDetail({
         <p>変更履歴はありません</p>
       ) : (
         <div className="table-wrap">
-          <table className="schedule-table" aria-labelledby="history-heading">
+          <table
+            className="schedule-table history-table"
+            aria-labelledby="history-heading"
+          >
             <thead>
               <tr>
                 <th scope="col">変更日時</th>
@@ -104,14 +113,28 @@ export default function ApplicationDetail({
           </table>
         </div>
       )}
+      {reloadFailed && (
+        <p className="field-error" role="alert">
+          最新の状態を読み込めませんでした。一覧に戻って、開き直してください
+        </p>
+      )}
       <StatusChangeForm
         detail={detail}
-        onChanged={(changed) =>
+        onChanged={(changed) => {
+          setReloadFailed(false)
           setOutcome({ kind: 'success', result: changed })
-        }
+        }}
         onConflict={() => {
-          // ほかの担当者が先に変えたので、最新の状態と履歴を読み直す（FR-019、research.md R12）
-          getDetail(applicationNumber).then(setOutcome)
+          // ほかの担当者が先に変えたので、最新の状態と履歴を読み直す（FR-019、research.md R12）。
+          // 読み直せなかったときは、画面全体をエラーにせず、今の詳細と 409 のメッセージを残して知らせる（T084）
+          setReloadFailed(false)
+          getDetail(applicationNumber).then((result) => {
+            if (result.kind === 'success') {
+              setOutcome(result)
+            } else {
+              setReloadFailed(true)
+            }
+          })
         }}
       />
     </>

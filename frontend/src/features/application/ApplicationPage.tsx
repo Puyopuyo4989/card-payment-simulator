@@ -18,34 +18,41 @@ export default function ApplicationPage() {
   const showDetail = (applicationNumber: string) =>
     setView({ name: 'detail', applicationNumber })
 
-  if (view.name === 'register') {
+  // 部品と部品の間のすき間は .stack で1か所で決める（index.css）。中の部品には上下の余白を付けない
+  return <div className="stack">{content()}</div>
+
+  function content() {
+    if (view.name === 'register') {
+      return (
+        <>
+          <button type="button" className="button-secondary" onClick={showList}>
+            一覧に戻る
+          </button>
+          <ApplicationForm onRegistered={showDetail} />
+        </>
+      )
+    }
+    if (view.name === 'detail') {
+      return (
+        <ApplicationDetail
+          applicationNumber={view.applicationNumber}
+          onBack={showList}
+        />
+      )
+    }
     return (
       <>
-        <button type="button" className="button-secondary" onClick={showList}>
-          一覧に戻る
-        </button>
-        <ApplicationForm onRegistered={showDetail} />
+        <div>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => setView({ name: 'register' })}
+          >
+            新規登録
+          </button>
+        </div>
+        <ApplicationList onSelect={showDetail} />
       </>
     )
   }
-  if (view.name === 'detail') {
-    return (
-      <ApplicationDetail
-        applicationNumber={view.applicationNumber}
-        onBack={showList}
-      />
-    )
-  }
-  return (
-    <>
-      <button
-        type="button"
-        className="button-secondary"
-        onClick={() => setView({ name: 'register' })}
-      >
-        新規登録
-      </button>
-      <ApplicationList onSelect={showDetail} />
-    </>
-  )
 }
