@@ -83,6 +83,7 @@ export default function ApplicationList({ onSelect }: Props) {
           </select>
         </div>
       </div>
+      {outcome === null && <p role="status">読み込み中です</p>}
       {outcome && (
         <ListBody outcome={outcome} onSelect={onSelect} onPage={setPage} />
       )}

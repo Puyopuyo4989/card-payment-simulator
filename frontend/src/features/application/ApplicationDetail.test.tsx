@@ -274,3 +274,107 @@ test('一覧に戻るボタンで一覧に戻る', async () => {
     'button-secondary',
   )
 })
+
+// 取り消せない決定のボタンにフォーカスがあると、続けて Enter を押しただけで承認・否決になる（T086）
+test('「審査中にする」が成功して「承認する」「否決する」が出たあと、どちらにもフォーカスがない', async () => {
+  const user = userEvent.setup()
+  getDetailMock.mockResolvedValue({ kind: 'success', result: applied })
+  vi.mocked(changeStatus).mockResolvedValue({
+    kind: 'success',
+    result: {
+      ...applied,
+      status: 'UNDER_REVIEW',
+      version: 1,
+      history: [rejected.history[0]],
+    },
+  })
+  render(<ApplicationDetail applicationNumber="A00000001" onBack={vi.fn()} />)
+
+  await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当A')
+  await user.click(screen.getByRole('button', { name: '審査中にする' }))
+
+  const approve = await screen.findByRole('button', { name: '承認する' })
+  const reject = screen.getByRole('button', { name: '否決する' })
+  expect(approve).not.toHaveFocus()
+  expect(reject).not.toHaveFocus()
+})
+
+test('読み込みが終わるまでは「読み込み中です」を出し、終わったら消す', async () => {
+  let resolve: (value: Awaited<ReturnType<typeof getDetail>>) => void = () => {}
+  getDetailMock.mockReturnValue(
+    new Promise((r) => {
+      resolve = r
+    }),
+  )
+  render(<ApplicationDetail applicationNumber="A00000001" onBack={vi.fn()} />)
+
+  expect(screen.getByRole('status')).toHaveTextContent('読み込み中です')
+  expect(screen.getByRole('button', { name: '一覧に戻る' })).toBeInTheDocument()
+
+  resolve({ kind: 'success', result: rejected })
+
+  expect(
+    await screen.findByRole('heading', { name: '申込番号 A00000001' }),
+  ).toBeInTheDocument()
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+test('ぶつかったあとの読み直しに失敗しても、今の詳細と 409 のメッセージを残し、読み直せなかったことを知らせる', async () => {
+  const user = userEvent.setup()
+  const underReview: Detail = {
+    ...applied,
+    status: 'UNDER_REVIEW',
+    version: 1,
+    history: [rejected.history[0]],
+  }
+  getDetailMock
+    .mockResolvedValueOnce({ kind: 'success', result: underReview })
+    .mockResolvedValueOnce({ kind: 'unexpectedError' })
+  vi.mocked(changeStatus).mockResolvedValue({
+    kind: 'conflict',
+    title: 'ほかの担当者が先に状態を変えました',
+    detail: '最新の状態を確かめてから、もう一度操作してください',
+  })
+  const { container } = render(
+    <ApplicationDetail applicationNumber="A00000001" onBack={vi.fn()} />,
+  )
+
+  await user.type(await screen.findByLabelText('担当者名'), 'テスト 担当B')
+  await user.click(screen.getByRole('button', { name: '承認する' }))
+
+  expect(
+    await screen.findByText(
+      '最新の状態を読み込めませんでした。一覧に戻って、開き直してください',
+    ),
+  ).toBeInTheDocument()
+  expect(getDetailMock).toHaveBeenCalledTimes(2)
+  expect(
+    screen.queryByText('詳細を読み込めませんでした。もう一度お試しください'),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.getByRole('heading', { name: '申込番号 A00000001' }),
+  ).toBeInTheDocument()
+  expect(summaryOf(container)['状態']).toBe('審査中')
+  expect(
+    screen.getByText('最新の状態を確かめてから、もう一度操作してください', {
+      exact: false,
+    }),
+  ).toBeInTheDocument()
+  expect(screen.getByLabelText('担当者名')).toHaveValue('テスト 担当B')
+
+  // そのあと変更が成功したら、読み直せなかったことの知らせは消す
+  vi.mocked(changeStatus).mockResolvedValue({
+    kind: 'success',
+    result: { ...underReview, status: 'APPROVED', version: 2 },
+  })
+  await user.click(screen.getByRole('button', { name: '承認する' }))
+
+  expect(
+    await screen.findByText('審査が終わった申込の状態は変えられません'),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByText(
+      '最新の状態を読み込めませんでした。一覧に戻って、開き直してください',
+    ),
+  ).not.toBeInTheDocument()
+})

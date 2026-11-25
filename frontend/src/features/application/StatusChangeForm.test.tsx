@@ -98,6 +98,13 @@ test('ボタンを押すと、入力のままの値と、詳細の版を文字�
   })
 })
 
+test('否決の理由（500文字まで）の欄は、複数行の入力欄（textarea）', () => {
+  renderForm('UNDER_REVIEW')
+
+  const reason = screen.getByRole('textbox', { name: '否決の理由' })
+  expect(reason.tagName).toBe('TEXTAREA')
+})
+
 test('「審査中にする」は否決の理由を空で送る', async () => {
   const user = userEvent.setup()
   changeStatusMock.mockReturnValue(new Promise(() => {}))

@@ -112,9 +112,9 @@ export default function StatusChangeForm({
           {detail.status === 'UNDER_REVIEW' && (
             <div className="form-field">
               <label htmlFor="rejectionReason">否決の理由</label>
-              <input
+              <textarea
                 id="rejectionReason"
-                type="text"
+                rows={3}
                 value={rejectionReason}
                 onChange={(event) => setRejectionReason(event.target.value)}
                 {...errorAttributes('rejectionReason')}

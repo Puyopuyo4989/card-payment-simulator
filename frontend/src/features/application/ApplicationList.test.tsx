@@ -166,3 +166,21 @@ test('一覧を開くたびに API を呼び、最新の状態を出す', async 
   expect(await screen.findByText('承認')).toBeInTheDocument()
   expect(listMock).toHaveBeenCalledTimes(2)
 })
+
+test('読み込みが終わるまでは「読み込み中です」を出し、終わったら消す', async () => {
+  let resolve: (value: ApiOutcome<ListResult, 'status'>) => void = () => {}
+  listMock.mockReturnValue(
+    new Promise((r) => {
+      resolve = r
+    }),
+  )
+  render(<ApplicationList onSelect={vi.fn()} />)
+
+  expect(screen.getByRole('status')).toHaveTextContent('読み込み中です')
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+  resolve(success(items))
+
+  expect(await screen.findByRole('table')).toBeInTheDocument()
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
