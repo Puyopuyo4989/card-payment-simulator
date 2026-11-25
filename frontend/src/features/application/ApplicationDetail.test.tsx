@@ -239,6 +239,7 @@ test('ほかの担当者とぶつかったら、詳細を読み直して最新�
     .mockResolvedValueOnce({ kind: 'success', result: approvedByOther })
   vi.mocked(changeStatus).mockResolvedValue({
     kind: 'conflict',
+    title: 'ほかの担当者が先に状態を変えました',
     detail: '最新の状態を確かめてから、もう一度操作してください',
   })
   const { container } = render(

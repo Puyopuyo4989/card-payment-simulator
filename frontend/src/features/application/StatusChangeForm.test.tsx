@@ -170,11 +170,12 @@ test('変更後の状態や版のエラーは、フォームの上に出す', as
   ])
 })
 
-test('ほかの担当者とぶつかったとき、detail を出して知らせ、担当者名は残す', async () => {
+test('ほかの担当者とぶつかったとき、title と detail を出して知らせ、担当者名は残す', async () => {
   const user = userEvent.setup()
   const onConflict = vi.fn()
   changeStatusMock.mockResolvedValue({
     kind: 'conflict',
+    title: 'ほかの担当者が先に状態を変えました',
     detail: '最新の状態を確かめてから、もう一度操作してください',
   })
   renderForm('UNDER_REVIEW', { onConflict })
@@ -182,7 +183,9 @@ test('ほかの担当者とぶつかったとき、detail を出して知らせ�
   await user.type(screen.getByLabelText('担当者名'), 'テスト 担当B')
   await user.click(screen.getByRole('button', { name: '承認する' }))
 
-  expect(await screen.findByRole('alert')).toHaveTextContent(
+  const alert = await screen.findByRole('alert')
+  expect(alert).toHaveTextContent('ほかの担当者が先に状態を変えました')
+  expect(alert).toHaveTextContent(
     '最新の状態を確かめてから、もう一度操作してください',
   )
   expect(onConflict).toHaveBeenCalledTimes(1)
@@ -242,6 +245,7 @@ test('もう一度押すとき、前のメッセージを消す', async () => {
   const user = userEvent.setup()
   changeStatusMock.mockResolvedValueOnce({
     kind: 'conflict',
+    title: 'ほかの担当者が先に状態を変えました',
     detail: '最新の状態を確かめてから、もう一度操作してください',
   })
   changeStatusMock.mockReturnValueOnce(new Promise(() => {}))

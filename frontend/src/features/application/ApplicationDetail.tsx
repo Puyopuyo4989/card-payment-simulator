@@ -61,7 +61,7 @@ export default function ApplicationDetail({
     <>
       {backButton}
       <h2>申込番号 {detail.applicationNumber}</h2>
-      <dl className="summary">
+      <dl className="summary detail-summary">
         <Item term="氏名（漢字）">{detail.nameKanji}</Item>
         <Item term="氏名（カナ）">{detail.nameKana}</Item>
         <Item term="生年月日">{detail.birthDate}</Item>
@@ -79,7 +79,10 @@ export default function ApplicationDetail({
         <p>変更履歴はありません</p>
       ) : (
         <div className="table-wrap">
-          <table className="schedule-table" aria-labelledby="history-heading">
+          <table
+            className="schedule-table history-table"
+            aria-labelledby="history-heading"
+          >
             <thead>
               <tr>
                 <th scope="col">変更日時</th>

@@ -285,8 +285,16 @@ Must の画面の目視（ユーザー、T072）と、PR 前のコードレビ�
 
 - [ ] T076 [P] [US2] 一覧の「新規登録」ボタンと、「状態」の絞り込みの行の間にすき間を空ける（`{fe}/ApplicationPage.tsx`・`frontend/src/index.css`）。すき間は `tokens.css` の `--space-*` を使い、新しい値を作らない
 - [ ] T077 [P] [US2] 申込の詳細の項目の値を、年収も含めてすべて左寄せにし、ラベルの列の幅をそろえる（登録のフォームと同じ形。`--form-label-width` と同じ考え方）。返済表と、分割払い・リボ払いの要約（`InstallmentSummary.tsx`・`RevolvingSummary.tsx` の `.summary`）の右寄せは変えない。原因は `.summary > div` の `justify-content: space-between` なので、`.summary` そのものは変えず、詳細の `dl`（`{fe}/ApplicationDetail.tsx`）にだけ別のクラスを付ける。分割払い・リボ払いの画面が変わらないことも画面で確かめる
-- [ ] T078 [P] [US3] ほかの担当者とぶつかったとき（409）、`title`「ほかの担当者が先に状態を変えました」も画面に出す（いまは `detail` だけ。contracts 4）。`{fe}/api.ts` の `conflict` に `title` を持たせ（本文にないときは決まった文）、`{fe}/StatusChangeForm.tsx` で `title` と `detail` を出す。先に `api.test.ts`・`StatusChangeForm.test.tsx` に、`title` が出ることのテストを足す
+- [x] T078 [P] [US3] ほかの担当者とぶつかったとき（409）、`title`「ほかの担当者が先に状態を変えました」も画面に出す（いまは `detail` だけ。contracts 4）。`{fe}/api.ts` の `conflict` に `title` を持たせ（本文にないときは決まった文）、`{fe}/StatusChangeForm.tsx` で `title` と `detail` を出す。先に `api.test.ts`・`StatusChangeForm.test.tsx` に、`title` が出ることのテストを足す
 - [ ] T079 [P] [US2] 幅 360px のとき、変更履歴の表を横にスクロールさせ、変更日時・「変更前 → 変更後」・担当者名は言葉の途中で折り返さない（`{fe}/ApplicationDetail.tsx`・`frontend/src/index.css`）。否決の理由の列は折り返してよい。返済表（`.schedule-table`・`.table-wrap`）の見た目は変えない。一覧の表も同じように見え方を確かめる
+
+**T076〜T079 の記録（2026-11-25）**
+
+- T078：`api.test.ts`・`StatusChangeForm.test.tsx` のテストを先に足して red を確かめ、直して green。409 の本文に `title` がないときは「ほかの担当者が先に状態を変えました」を出す
+- T076・T077・T079：見た目だけの直しで、jsdom では確かめられない。この環境にはブラウザーがないので、**直す前と後の画面の確認はまだしていない**（チェックはまだ付けない。人が画面で確かめたら付ける）。直した内容：
+  - T076：一覧の「新規登録」を `.page-actions`（`margin-bottom: var(--space-4)`）で囲んだ（`ApplicationPage.tsx`・`index.css`）
+  - T077：詳細の `dl` に `.detail-summary` を足し、`justify-content: flex-start` と、`dt` の幅 `var(--form-label-width)` にした。`.summary` そのものは変えていない
+  - T079：変更履歴の表に `.history-table` を足し、セルを `white-space: nowrap` に、否決の理由の列だけ折り返す（最小の幅 `var(--form-input-width)`）。横のスクロールは今の `.table-wrap` のまま。`.schedule-table`・`.table-wrap` は変えていない
 
 **レビューで見つけたもの（Minor 2〜6）**
 

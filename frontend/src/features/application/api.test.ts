@@ -173,25 +173,27 @@ describe('結果の種類', () => {
     await expect(getDetail('A99999999')).resolves.toEqual({ kind: 'notFound' })
   })
 
-  test('409 は conflict で、detail を持つ', async () => {
+  test('409 は conflict で、title と detail を持つ', async () => {
     stubFetch(
       problem(409, {
-        title: 'ほかの担当者が先に状態を変えました',
-        detail: '最新の状態を確かめてから、もう一度操作してください',
+        title: '本文のtitle',
+        detail: '本文のdetail',
       }),
     )
 
     await expect(changeStatus('A00000001', statusChange)).resolves.toEqual({
       kind: 'conflict',
-      detail: '最新の状態を確かめてから、もう一度操作してください',
+      title: '本文のtitle',
+      detail: '本文のdetail',
     })
   })
 
-  test('409 で detail がないときも、決まった文で conflict を返す', async () => {
-    stubFetch(problem(409))
+  test('409 で title・detail がないときも、決まった文で conflict を返す', async () => {
+    stubFetch(Response.json({ status: 409 }, { status: 409 }))
 
     await expect(changeStatus('A00000001', statusChange)).resolves.toEqual({
       kind: 'conflict',
+      title: 'ほかの担当者が先に状態を変えました',
       detail: '最新の状態を確かめてから、もう一度操作してください',
     })
   })

@@ -76,5 +76,5 @@ export type ApiOutcome<R, F extends string> =
   | { kind: 'success'; result: R }
   | { kind: 'inputError'; errors: FieldError<F>[] }
   | { kind: 'notFound' }
-  | { kind: 'conflict'; detail: string }
+  | { kind: 'conflict'; title: string; detail: string }
   | { kind: 'unexpectedError' }

@@ -304,6 +304,38 @@ body {
   background: var(--color-row-alt);
 }
 
+/* 申込の一覧の「新規登録」と、その下の絞り込みの行の間を空ける（003 の T076） */
+.page-actions {
+  margin-bottom: var(--space-4);
+}
+
+/*
+ * 申込の詳細の項目（003 の T077）。分割払い・リボ払いの要約（.summary）は値を右寄せにするが、
+ * 詳細では、登録のフォームと同じく、ラベルの列の幅をそろえて値を左寄せにする
+ */
+.detail-summary > div {
+  justify-content: flex-start;
+}
+
+.detail-summary dt {
+  flex: 0 0 var(--form-label-width);
+}
+
+/*
+ * 申込の変更履歴の表（003 の T079）。狭い画面では表を横に動かし、変更日時・「変更前 → 変更後」・担当者名は
+ * 言葉の途中で折り返さない。否決の理由（最後の列）だけは折り返してよいが、1文字ずつにならない幅を取る
+ */
+.history-table th,
+.history-table td {
+  white-space: nowrap;
+}
+
+.history-table th:last-child,
+.history-table td:last-child {
+  min-width: var(--form-input-width);
+  white-space: normal;
+}
+
 /* 【Should】申込の一覧のキーワード検索（003 の R13）。「検索」は入力欄の右に置く */
 .search-field {
   grid-template-columns: var(--form-label-width) var(--form-input-width) auto;

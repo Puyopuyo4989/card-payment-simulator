@@ -77,6 +77,8 @@ export default function StatusChangeForm({
       <h3 id="status-change-heading">状態の変更</h3>
       {outcome?.kind === 'conflict' && (
         <p className="field-error" role="alert">
+          {outcome.title}
+          <br />
           {outcome.detail}
         </p>
       )}

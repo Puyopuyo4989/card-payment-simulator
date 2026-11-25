@@ -38,13 +38,15 @@ export default function ApplicationPage() {
   }
   return (
     <>
-      <button
-        type="button"
-        className="button-secondary"
-        onClick={() => setView({ name: 'register' })}
-      >
-        新規登録
-      </button>
+      <div className="page-actions">
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => setView({ name: 'register' })}
+        >
+          新規登録
+        </button>
+      </div>
       <ApplicationList onSelect={showDetail} />
     </>
   )
