@@ -9,6 +9,8 @@
       git push --force / -f / refspec 先頭の +（git push origin +main）
       git reset --hard
       git clean -f（-fd, -fdx などを含む）
+      git restore . / git checkout . / git checkout -- . など、作業ツリー全体をまとめて戻すもの
+        （ファイルを指定して戻すのと、git restore --staged . は許可）
       git commit --no-verify / -n（-anm などを含む）、git push --no-verify（push の -n は --dry-run なので許可）
         --no-veri / --no-verif などの省略形、LEFTHOOK=0 や LEFTHOOK_EXCLUDE などを付けた git commit / push、
         export LEFTHOOK=0、git -c core.hooksPath=...、git config での core.hooksPath の変更
@@ -313,7 +315,37 @@ def check_git(args: list, assignments: list):
         return "git reset --hard は禁止されています。未コミットの変更が失われます。git stash や git restore を検討してください。"
     if sub == "clean" and ("--force" in rest or has_short_flag(rest, "f")):
         return "git clean -f は禁止されています。追跡されていないファイルが復元できない形で削除されます。git clean -n で対象を確認し、ユーザーに実行を依頼してください。"
+    if sub in ("restore", "checkout") and restores_whole_tree(sub, rest):
+        return (
+            f"git {sub} で作業ツリー全体（. など）をまとめて戻すのは禁止されています。"
+            "まだコミットしていない変更が消えます。戻すファイルを指定するか、作業を止めてユーザーに確認してください。"
+        )
     return None
+
+
+# 作業ツリー全体を指す pathspec（末尾の / は外して比べる）
+WHOLE_TREE_PATHSPECS = {".", "..", "*", ":", ":.", ":*", ":/.", ":/*", ":(top)", ":(top)."}
+
+
+def is_whole_tree_pathspec(arg: str) -> bool:
+    return arg.rstrip("/") in WHOLE_TREE_PATHSPECS
+
+
+def restores_whole_tree(sub: str, args: list) -> bool:
+    """git restore / checkout が、作業ツリー全体を戻す指定（git restore . / git checkout -- . など）か。
+
+    . はブランチ名にはなれないので、-- の前でも pathspec とみなす。
+    git restore --staged .（-W を付けない）はインデックスから外すだけで、作業ツリーの変更は消えないので許可する。
+    """
+    if not any(is_whole_tree_pathspec(a) for a in args if not a.startswith("-")):
+        return False
+    if sub == "restore":
+        options = options_before_double_dash(args)
+        staged = "--staged" in options or has_short_flag(options, "S")
+        worktree = "--worktree" in options or has_short_flag(options, "W")
+        if staged and not worktree:
+            return False
+    return True
 
 
 FIND_EXEC_ACTIONS = {"-exec", "-execdir", "-ok", "-okdir"}

@@ -4,7 +4,8 @@
 
 - hook や権限の設定で操作が止められたときは、別の書き方で回避しない。作業を止めて、止められた理由と、やりたかったことを人に報告し、判断を仰ぐ
 - ファイルの編集は Edit・Write ツールで行い、Bash（ヒアドキュメント、python、sed など）でファイルを書き換えない
-  - ただし、git restore・git checkout でコミット済みの状態に戻すのはよい（戻した先は、すでにチェックを通った状態だから）
+  - ただし、git restore・git checkout で、**ファイルを指定して**コミット済みの状態に戻すのはよい（例：`git restore src/Foo.java`。戻した先は、すでにチェックを通った状態だから）
+  - `git restore .`・`git checkout .`・`git checkout -- .` のように、まとめて戻す操作はしない。まだコミットしていない変更が消える。必要なときは作業を止めて、人に聞く（`.claude/hooks/guard_dangerous_ops.py` でも止めている）
   - 理由：hook の判定と、PostToolUse の自動フォーマット・テストが正しく働くようにするため
 - PR を出す前には、必ずスキル②（pre-pr-check）を使い、その結果の一覧を PR の説明文に貼る
 

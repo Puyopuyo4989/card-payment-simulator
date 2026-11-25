@@ -280,6 +280,63 @@ class TestNoVerify(HookTestCase):
             self.assertBashAllowed(cmd)
 
 
+# ------------------------------------------------------------------ git restore / checkout でまとめて戻す
+
+
+class TestBulkRestore(HookTestCase):
+    """作業ツリー全体を戻す git restore / checkout は、まだコミットしていない変更が消えるので止める。
+
+    ファイル（やディレクトリ）を指定して戻すのはよい（CLAUDE.md の作業のルール）。
+    """
+
+    def test_bulk_restore_is_blocked(self):
+        for cmd in [
+            "git restore .",
+            "git restore ./",
+            "git restore -- .",
+            "git restore --worktree .",
+            "git restore -W .",
+            "git restore --staged --worktree .",
+            "git restore -SW .",
+            "git restore --source=HEAD .",
+            "git restore -s HEAD .",
+            "git restore :/",
+            "git restore '*'",
+            "git -C frontend restore .",
+            "git checkout .",
+            "git checkout -- .",
+            "git checkout HEAD -- .",
+            "git checkout main .",
+            "git checkout -f -- .",
+            "git checkout :/",
+            "git status && git checkout .",
+            "bash -c 'git restore .'",
+        ]:
+            self.assertBashBlocked(cmd)
+
+    def test_restore_by_file_and_branch_switch_are_allowed(self):
+        for cmd in [
+            "git checkout -b feature/x",
+            "git checkout -b chore/day6-wrapup main",
+            "git checkout main",
+            "git checkout -",
+            "git checkout HEAD~1 -- src/Foo.java",
+            "git checkout -- src/Foo.java",
+            "git restore src/Foo.java",
+            "git restore src/main/java/Foo.java frontend/src/App.tsx",
+            "git restore --staged src/Foo.java",
+            "git restore --source=HEAD~1 src/Foo.java",
+            "git restore ./src/Foo.java",
+            "git restore src frontend/src README.md",  # README.md の手順の後片付け
+            "git restore --staged .",  # インデックスから外すだけ。作業ツリーの変更は消えない
+            "git restore -S .",
+            "git switch main",
+            "git add .",
+            "git diff -- .",
+        ]:
+            self.assertBashAllowed(cmd)
+
+
 # ------------------------------------------------------------------ 許可すべきケース
 
 
