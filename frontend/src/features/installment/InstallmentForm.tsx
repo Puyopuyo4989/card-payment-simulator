@@ -1,7 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { fieldErrors } from '../../shared/fieldErrors'
 import { useReturnFocus } from '../../shared/useReturnFocus'
-import { amountForApi, formatAmountInput, formatRateInput } from './inputFormat'
+import {
+  amountForApi,
+  formatAmountInput,
+  formatRateInput,
+} from '../../shared/inputFormat'
 import type { FieldError, InstallmentSimulationRequest } from './types'
 
 /** 支払回数の選択肢（FR-003） */
@@ -29,7 +33,7 @@ type Props = {
 
 /**
  * 入力フォーム。入力のチェックはサーバーが行うので、入力されたままの文字列を渡す（research.md R8）。
- * 【Should】ただし利用金額のカンマは取り除いて渡し、フォーカスが外れたときに表示を整える（FR-015〜FR-018、inputFormat.ts）。
+ * 【Should】ただし利用金額のカンマは取り除いて渡し、フォーカスが外れたときに表示を整える（FR-015〜FR-018、リボ払いと共通の shared/inputFormat.ts）。
  * 整えられない値は、入力されたまま渡す（チェックはサーバー）。
  * エラーの表示とフォーカスを戻す処理は、リボ払いと共通（shared/fieldErrors・shared/useReturnFocus）
  */
