@@ -165,6 +165,51 @@ body {
   cursor: not-allowed;
 }
 
+/* 控えめなボタン（一覧に戻る・新規登録を開く。003 の R12）。選んでいないタブと同じ色の組み合わせ */
+.button-secondary {
+  padding: var(--space-2) var(--space-6);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.button-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 注意書きの枠（登録の画面の「ダミーの情報だけを入力してください」など。003 の FR-020） */
+.notice {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid var(--color-brand);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+/* 状態の小さな札（一覧・詳細の「申込」「審査中」など。色だけに頼らず、文字で状態を出す） */
+.status-badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-heading);
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
 /* フォーカスの輪（キーボードで操作したとき） */
 :focus-visible {
   outline: 3px solid var(--color-focus);

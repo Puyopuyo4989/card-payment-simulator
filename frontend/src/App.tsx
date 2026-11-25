@@ -1,16 +1,18 @@
 import { useState } from 'react'
+import ApplicationPage from './features/application/ApplicationPage'
 import InstallmentPage from './features/installment/InstallmentPage'
 import RevolvingPage from './features/revolving/RevolvingPage'
 
 const TABS = [
   { id: 'installment', label: '分割払い' },
   { id: 'revolving', label: 'リボ払い' },
+  { id: 'application', label: '申込管理' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
 
 /**
- * 見出しと、分割払い・リボ払いを切り替えるタブ（002 の research.md R7）。ルーターは使わない。
+ * 見出しと、分割払い・リボ払い・申込管理を切り替えるタブ（002 の research.md R7、003 の R12）。ルーターは使わない。
  * 選んでいないほうは描画しないので、切り替えると入力と結果は消える
  */
 export default function App() {
@@ -49,6 +51,7 @@ export default function App() {
         >
           {selected === 'installment' && <InstallmentPage />}
           {selected === 'revolving' && <RevolvingPage />}
+          {selected === 'application' && <ApplicationPage />}
         </div>
       </main>
     </>

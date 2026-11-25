@@ -1,7 +1,15 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import App from './App'
+
+// 申込管理の一覧は開くと API を呼ぶので、差し替えるのは api.ts だけにする（tasks.md T042）
+vi.mock('./features/application/api', () => ({
+  list: vi.fn().mockResolvedValue({ kind: 'success', result: { items: [] } }),
+  register: vi.fn(),
+  getDetail: vi.fn(),
+  changeStatus: vi.fn(),
+}))
 
 test('見出し「カード支払シミュレーション」が表示される', () => {
   render(<App />)
@@ -11,7 +19,7 @@ test('見出し「カード支払シミュレーション」が表示される',
   ).toBeInTheDocument()
 })
 
-test('タブ「分割払い」「リボ払い」がある', () => {
+test('タブ「分割払い」「リボ払い」「申込管理」がある', () => {
   render(<App />)
 
   const tablist = screen.getByRole('tablist')
@@ -19,7 +27,31 @@ test('タブ「分割払い」「リボ払い」がある', () => {
     within(tablist)
       .getAllByRole('tab')
       .map((tab) => tab.textContent),
-  ).toEqual(['分割払い', 'リボ払い'])
+  ).toEqual(['分割払い', 'リボ払い', '申込管理'])
+})
+
+test('「申込管理」を押すと、申込管理の画面がタブの中に表示される', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(screen.getByRole('tab', { name: '申込管理' }))
+
+  expect(screen.getByRole('tab', { name: '申込管理' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  expect(screen.getByRole('tab', { name: '分割払い' })).toHaveAttribute(
+    'aria-selected',
+    'false',
+  )
+  // ApplicationPage は差し替えず、本物が「新規登録」のボタンを出すことを確かめる
+  const panel = screen.getByRole('tabpanel', { name: '申込管理' })
+  expect(
+    await within(panel).findByRole('button', { name: '新規登録' }),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByRole('combobox', { name: '支払回数' }),
+  ).not.toBeInTheDocument()
 })
 
 test('最初は「分割払い」を選んでいて、分割払いの入力フォームがタブの中に表示される', () => {
