@@ -291,6 +291,212 @@ class CardApplicationApiTest {
         }
     }
 
+    // 4. 状態を変える（US3）
+
+    @Test
+    void 申込を審査中にすると変更後の詳細と履歴の1行を返す() {
+        register(VALID_REQUEST);
+        clock.advance(Duration.ofMinutes(30));
+
+        var result = changeStatus("A00000001", review(0));
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.status").isEqualTo("UNDER_REVIEW");
+        json.extractingPath("$.appliedAt").isEqualTo("2026-11-25T01:30:00Z");
+        json.extractingPath("$.updatedAt").isEqualTo("2026-11-25T02:00:00Z");
+        json.extractingPath("$.version").isEqualTo(1);
+        json.extractingPath("$.history").asArray().hasSize(1);
+        json.extractingPath("$.history[0].changedAt").isEqualTo("2026-11-25T02:00:00Z");
+        json.extractingPath("$.history[0].fromStatus").isEqualTo("APPLIED");
+        json.extractingPath("$.history[0].toStatus").isEqualTo("UNDER_REVIEW");
+        json.extractingPath("$.history[0].staffName").isEqualTo("テスト 担当A");
+        json.extractingPath("$.history[0].rejectionReason").isNull();
+    }
+
+    @Test
+    void 審査中から承認すると履歴が古い順に2行になる() {
+        registerUnderReview();
+        clock.advance(Duration.ofMinutes(10));
+
+        var result =
+                changeStatus(
+                        "A00000001",
+                        """
+                        {"toStatus":"APPROVED","staffName":"テスト 担当B","version":1}
+                        """);
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.status").isEqualTo("APPROVED");
+        json.extractingPath("$.version").isEqualTo(2);
+        json.extractingPath("$.history[*].toStatus")
+                .asArray()
+                .containsExactly("UNDER_REVIEW", "APPROVED");
+        json.extractingPath("$.history[1].fromStatus").isEqualTo("UNDER_REVIEW");
+        json.extractingPath("$.history[1].staffName").isEqualTo("テスト 担当B");
+        json.extractingPath("$.history[1].changedAt").isEqualTo("2026-11-25T01:40:00Z");
+    }
+
+    @Test
+    void 審査中から理由つきで否決すると履歴に理由が残る() {
+        registerUnderReview();
+
+        var result = changeStatus("A00000001", reject("テスト用の否決理由", "1"));
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.status").isEqualTo("REJECTED");
+        json.extractingPath("$.history[1].toStatus").isEqualTo("REJECTED");
+        json.extractingPath("$.history[1].rejectionReason").isEqualTo("テスト用の否決理由");
+    }
+
+    @Test
+    void 否決の理由がないときは400で何も変えない() {
+        registerUnderReview();
+
+        for (String reason : new String[] {"", "　 "}) {
+            var result = changeStatus("A00000001", reject(reason, "1"));
+
+            assertInputError(result, "rejectionReason", "否決の理由を入力してください");
+        }
+        var noField =
+                changeStatus(
+                        "A00000001",
+                        """
+                        {"toStatus":"REJECTED","staffName":"テスト 担当A","version":"1"}
+                        """);
+        assertInputError(noField, "rejectionReason", "否決の理由を入力してください");
+        assertUnchanged("UNDER_REVIEW", 1, 1);
+    }
+
+    @Test
+    void 担当者名がないときは400で何も変えない() {
+        register(VALID_REQUEST);
+
+        for (String staff : new String[] {"", "　 "}) {
+            var result =
+                    changeStatus(
+                            "A00000001",
+                            "{\"toStatus\":\"UNDER_REVIEW\",\"staffName\":\""
+                                    + staff
+                                    + "\",\"version\":\"0\"}");
+
+            assertInputError(result, "staffName", "担当者名を入力してください");
+        }
+        assertUnchanged("APPLIED", 0, 0);
+    }
+
+    @Test
+    void 申込から承認や否決にはできない() {
+        register(VALID_REQUEST);
+
+        var approve =
+                changeStatus(
+                        "A00000001",
+                        """
+                        {"toStatus":"APPROVED","staffName":"テスト 担当A","version":"0"}
+                        """);
+        var rejectResult = changeStatus("A00000001", reject("テスト用の否決理由", "0"));
+
+        assertInputError(approve, "toStatus", "承認・否決の前に、先に「審査中」にしてください");
+        assertInputError(rejectResult, "toStatus", "承認・否決の前に、先に「審査中」にしてください");
+        assertUnchanged("APPLIED", 0, 0);
+    }
+
+    @Test
+    void 審査が終わった申込の状態は変えられない() {
+        registerUnderReview();
+        changeStatus(
+                "A00000001",
+                """
+                {"toStatus":"APPROVED","staffName":"テスト 担当A","version":"1"}
+                """);
+
+        var result = changeStatus("A00000001", review(2));
+
+        assertInputError(result, "toStatus", "審査が終わった申込の状態は変えられません");
+        assertUnchanged("APPROVED", 2, 2);
+    }
+
+    @Test
+    void 否決した申込も状態は変えられない() {
+        registerUnderReview();
+        changeStatus("A00000001", reject("テスト用の否決理由", "1"));
+
+        var result = changeStatus("A00000001", review(2));
+
+        assertInputError(result, "toStatus", "審査が終わった申込の状態は変えられません");
+        assertUnchanged("REJECTED", 2, 2);
+    }
+
+    @Test
+    void 同じ状態や前の状態には変えられない() {
+        registerUnderReview();
+
+        var result = changeStatus("A00000001", review(1));
+
+        assertInputError(result, "toStatus", "この状態には変えられません。変えられるのは「申込→審査中」「審査中→承認」「審査中→否決」だけです");
+        assertUnchanged("UNDER_REVIEW", 1, 1);
+    }
+
+    @Test
+    void 古い版で変えようとすると409で何も変えない() {
+        registerUnderReview();
+
+        var result =
+                changeStatus(
+                        "A00000001",
+                        """
+                        {"toStatus":"APPROVED","staffName":"テスト 担当B","version":"0"}
+                        """);
+
+        assertConflict(result, "/api/card-applications/A00000001/status-changes");
+        assertUnchanged("UNDER_REVIEW", 1, 1);
+    }
+
+    @Test
+    void ない申込の状態は変えられない() {
+        var result = changeStatus("A99999999", review(0));
+
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(result).bodyJson().extractingPath("$.title").isEqualTo("申込が見つかりません");
+    }
+
+    @Test
+    void ない申込でも入力の誤りを先に返す() {
+        var result =
+                changeStatus(
+                        "A99999999",
+                        """
+                        {"toStatus":"UNDER_REVIEW","staffName":"","version":"0"}
+                        """);
+
+        assertInputError(result, "staffName", "担当者名を入力してください");
+    }
+
+    @Test
+    void 古い版で許されない変更をすると遷移より先に409を返す() {
+        registerUnderReview();
+
+        // 審査中→審査中は許されないが、版が古いことを先に返す（data-model.md 4 の順番）
+        var result = changeStatus("A00000001", review(0));
+
+        assertConflict(result, "/api/card-applications/A00000001/status-changes");
+        assertUnchanged("UNDER_REVIEW", 1, 1);
+    }
+
+    @Test
+    void 状態の変更の本文がJSONとして読めないときは400() {
+        register(VALID_REQUEST);
+
+        var result = changeStatus("A00000001", "{");
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(result).bodyJson().doesNotHavePath("$.errors");
+        assertUnchanged("APPLIED", 0, 0);
+    }
+
     // 5. 登録・変更しないもの（spec FR-006。tasks.md T075）
 
     @Test
@@ -369,6 +575,64 @@ class CardApplicationApiTest {
                 .param("staffName", staffName)
                 .param("reason", reason)
                 .update();
+    }
+
+    /** 1件登録し、「テスト 担当A」が審査中にする（version 1・履歴1行）。 */
+    private void registerUnderReview() {
+        register(VALID_REQUEST);
+        assertThat(changeStatus("A00000001", review(0))).hasStatus(HttpStatus.OK);
+    }
+
+    private static String review(int version) {
+        return "{\"toStatus\":\"UNDER_REVIEW\",\"staffName\":\"テスト 担当A\",\"version\":\""
+                + version
+                + "\"}";
+    }
+
+    private static String reject(String reason, String version) {
+        return "{\"toStatus\":\"REJECTED\",\"staffName\":\"テスト 担当B\",\"rejectionReason\":\""
+                + reason
+                + "\",\"version\":\""
+                + version
+                + "\"}";
+    }
+
+    private MvcTestResult changeStatus(String number, String body) {
+        return mvc.post()
+                .uri("/api/card-applications/" + number + "/status-changes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .exchange();
+    }
+
+    private static void assertInputError(MvcTestResult result, String field, String message) {
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(result).hasContentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.title").isEqualTo("入力に誤りがあります");
+        json.extractingPath("$.errors").asArray().hasSize(1);
+        json.extractingPath("$.errors[0].field").isEqualTo(field);
+        json.extractingPath("$.errors[0].message").isEqualTo(message);
+    }
+
+    static void assertConflict(MvcTestResult result, String instance) {
+        assertThat(result).hasStatus(HttpStatus.CONFLICT);
+        assertThat(result).hasContentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON);
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.type").isEqualTo("about:blank");
+        json.extractingPath("$.title").isEqualTo("ほかの担当者が先に状態を変えました");
+        json.extractingPath("$.status").isEqualTo(409);
+        json.extractingPath("$.detail").isEqualTo("最新の状態を確かめてから、もう一度操作してください");
+        json.extractingPath("$.instance").isEqualTo(instance);
+        json.doesNotHavePath("$.errors");
+    }
+
+    /** A00000001 の状態・版・履歴の件数が、期待どおりのまま変わっていない。 */
+    private void assertUnchanged(String status, int version, int historyCount) {
+        CardApplication saved = repository.findByNumber("A00000001").orElseThrow();
+        assertThat(saved.status()).isEqualTo(ApplicationStatus.valueOf(status));
+        assertThat(saved.version()).isEqualTo(version);
+        assertThat(repository.findHistory("A00000001")).hasSize(historyCount);
     }
 
     private MvcTestResult register(String body) {

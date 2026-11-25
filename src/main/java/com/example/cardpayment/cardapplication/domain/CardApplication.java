@@ -32,6 +32,50 @@ public record CardApplication(
         Instant updatedAt,
         int version) {
 
+    /**
+     * 状態を変える（data-model.md 3、spec FR-015）。この申込は変えず、変更後の申込と履歴の1行を返す。 version を増やすのは DB（UPDATE …
+     * version = version + 1）なので、ここでは変えない。
+     *
+     * @param rejectionReason 否決の理由。否決のときは必須（入力チェックで先に確かめる）。ほかの状態のときは捨てる
+     * @throws StatusTransitionException 許されない変更
+     */
+    public StatusChange changeStatus(
+            ApplicationStatus to, String staffName, String rejectionReason, Instant now) {
+        if (status.isFinal()) {
+            throw new StatusTransitionException(
+                    StatusTransitionException.Reason.ALREADY_DECIDED, status, to);
+        }
+        if (status == ApplicationStatus.APPLIED && to.isFinal()) {
+            throw new StatusTransitionException(
+                    StatusTransitionException.Reason.REVIEW_REQUIRED_FIRST, status, to);
+        }
+        if (!status.canChangeTo(to)) {
+            throw new StatusTransitionException(
+                    StatusTransitionException.Reason.NOT_ALLOWED, status, to);
+        }
+        boolean rejecting = to == ApplicationStatus.REJECTED;
+        if (rejecting && rejectionReason == null) {
+            throw new IllegalArgumentException("否決には理由が要ります");
+        }
+        CardApplication changed =
+                new CardApplication(
+                        applicationNumber,
+                        nameKanji,
+                        nameKana,
+                        birthDate,
+                        annualIncome,
+                        employerName,
+                        phoneNumber,
+                        to,
+                        appliedAt,
+                        now,
+                        version);
+        var history =
+                new StatusHistoryEntry(
+                        now, status, to, staffName, rejecting ? rejectionReason : null);
+        return new StatusChange(changed, history);
+    }
+
     /** 個人情報を出さず、申込番号と状態だけを出す（research.md R11-1 の4）。 */
     @Override
     public String toString() {

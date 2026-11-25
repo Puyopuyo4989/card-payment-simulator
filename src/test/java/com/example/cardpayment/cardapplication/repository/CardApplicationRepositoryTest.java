@@ -91,6 +91,71 @@ class CardApplicationRepositoryTest {
         assertThat(repository.findByNumber("abc")).isEmpty();
     }
 
+    // 状態の更新（US3）
+
+    @Test
+    void 版が合えば状態と更新日時を変えて版を1増やす() {
+        String number = repository.insert(taro(), NOW);
+        Instant later = NOW.plusSeconds(600);
+
+        int rows = repository.updateStatus(number, ApplicationStatus.UNDER_REVIEW, later, 0);
+
+        assertThat(rows).isEqualTo(1);
+        CardApplication found = repository.findByNumber(number).orElseThrow();
+        assertThat(found.status()).isEqualTo(ApplicationStatus.UNDER_REVIEW);
+        assertThat(found.updatedAt()).isEqualTo(later);
+        assertThat(found.appliedAt()).isEqualTo(NOW);
+        assertThat(found.version()).isEqualTo(1);
+    }
+
+    @Test
+    void 古い版では何も変えず0を返す() {
+        String number = repository.insert(taro(), NOW);
+        repository.updateStatus(number, ApplicationStatus.UNDER_REVIEW, NOW.plusSeconds(60), 0);
+
+        int rows =
+                repository.updateStatus(
+                        number, ApplicationStatus.APPROVED, NOW.plusSeconds(120), 0);
+
+        assertThat(rows).isZero();
+        CardApplication found = repository.findByNumber(number).orElseThrow();
+        assertThat(found.status()).isEqualTo(ApplicationStatus.UNDER_REVIEW);
+        assertThat(found.updatedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(found.version()).isEqualTo(1);
+    }
+
+    @Test
+    void ない申込の更新は0を返す() {
+        repository.insert(taro(), NOW);
+
+        assertThat(repository.updateStatus("A99999999", ApplicationStatus.UNDER_REVIEW, NOW, 0))
+                .isZero();
+    }
+
+    @Test
+    void 足した履歴を読める() {
+        String number = repository.insert(taro(), NOW);
+        var review =
+                new StatusHistoryEntry(
+                        NOW.plusSeconds(60),
+                        ApplicationStatus.APPLIED,
+                        ApplicationStatus.UNDER_REVIEW,
+                        "テスト 担当A",
+                        null);
+        var reject =
+                new StatusHistoryEntry(
+                        NOW.plusSeconds(120),
+                        ApplicationStatus.UNDER_REVIEW,
+                        ApplicationStatus.REJECTED,
+                        "テスト 担当B",
+                        "テスト用の否決理由");
+
+        repository.insertHistory(number, review);
+        repository.insertHistory(number, reject);
+
+        assertThat(repository.findHistory(number)).containsExactly(review, reject);
+    }
+
     // 一覧（US2）
 
     @Test

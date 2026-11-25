@@ -67,6 +67,44 @@ public class CardApplicationRepository {
                 .optional();
     }
 
+    /**
+     * 版が expectedVersion のときだけ状態と更新日時を変え、版を1増やす（楽観ロック、research.md R4）。 更新した行の数を返す（0
+     * なら、ほかの人が先に変えたか、申込がない）。
+     */
+    public int updateStatus(
+            String applicationNumber, ApplicationStatus to, Instant now, int expectedVersion) {
+        return jdbcClient
+                .sql(
+                        """
+                        UPDATE card_application
+                           SET status = :status, updated_at = :now, version = version + 1
+                         WHERE application_number = :number AND version = :version
+                        """)
+                .param("status", to.name())
+                .param("now", toDb(now))
+                .param("number", applicationNumber)
+                .param("version", expectedVersion)
+                .update();
+    }
+
+    /** 履歴に1行足す（spec FR-017）。 */
+    public void insertHistory(String applicationNumber, StatusHistoryEntry entry) {
+        jdbcClient
+                .sql(
+                        """
+                        INSERT INTO card_application_status_history
+                          (application_number, changed_at, from_status, to_status, staff_name, rejection_reason)
+                        VALUES (:number, :changedAt, :from, :to, :staffName, :reason)
+                        """)
+                .param("number", applicationNumber)
+                .param("changedAt", toDb(entry.changedAt()))
+                .param("from", entry.fromStatus().name())
+                .param("to", entry.toStatus().name())
+                .param("staffName", entry.staffName())
+                .param("reason", entry.rejectionReason())
+                .update();
+    }
+
     /** 一覧。申込日時の新しい順で、同じ日時なら申込番号の大きい順（research.md R10）。 状態を指定したときは、その状態の申込だけを返す（spec FR-008）。 */
     public List<CardApplication> findAll(Optional<ApplicationStatus> status) {
         String order = " ORDER BY applied_at DESC, application_number DESC";

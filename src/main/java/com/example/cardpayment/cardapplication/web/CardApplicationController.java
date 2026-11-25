@@ -2,6 +2,7 @@ package com.example.cardpayment.cardapplication.web;
 
 import com.example.cardpayment.cardapplication.domain.ApplicationStatus;
 import com.example.cardpayment.cardapplication.domain.CardApplication;
+import com.example.cardpayment.cardapplication.domain.StatusTransitionException;
 import com.example.cardpayment.cardapplication.service.CardApplicationDetail;
 import com.example.cardpayment.cardapplication.service.CardApplicationService;
 import com.example.cardpayment.common.web.InputValidationException;
@@ -30,11 +31,15 @@ public class CardApplicationController {
             "状態は APPLIED・UNDER_REVIEW・APPROVED・REJECTED のどれかを指定してください";
 
     private final CardApplicationInputValidator validator;
+    private final StatusChangeInputValidator statusChangeValidator;
     private final CardApplicationService service;
 
     public CardApplicationController(
-            CardApplicationInputValidator validator, CardApplicationService service) {
+            CardApplicationInputValidator validator,
+            StatusChangeInputValidator statusChangeValidator,
+            CardApplicationService service) {
         this.validator = validator;
+        this.statusChangeValidator = statusChangeValidator;
         this.service = service;
     }
 
@@ -63,6 +68,38 @@ public class CardApplicationController {
     public CardApplicationDetailResponse detail(@PathVariable String applicationNumber) {
         CardApplicationDetail detail = service.detail(applicationNumber);
         return CardApplicationDetailResponse.from(detail.application(), detail.history());
+    }
+
+    /**
+     * 状態を変える（contracts 4）。入力チェック（DB を読まない）→ サービス（404・409・遷移）の順。 許されない遷移は、理由に応じたメッセージの 400（field
+     * toStatus）にする。
+     */
+    @PostMapping("/{applicationNumber}/status-changes")
+    public CardApplicationDetailResponse changeStatus(
+            @PathVariable String applicationNumber, @RequestBody StatusChangeRequest request) {
+        ValidStatusChange input = statusChangeValidator.validate(request);
+        CardApplicationDetail detail;
+        try {
+            detail =
+                    service.changeStatus(
+                            applicationNumber,
+                            input.toStatus(),
+                            input.staffName(),
+                            input.rejectionReason(),
+                            input.version());
+        } catch (StatusTransitionException e) {
+            throw new InputValidationException(
+                    List.of(new FieldError("toStatus", transitionMessage(e.reason()))));
+        }
+        return CardApplicationDetailResponse.from(detail.application(), detail.history());
+    }
+
+    private static String transitionMessage(StatusTransitionException.Reason reason) {
+        return switch (reason) {
+            case REVIEW_REQUIRED_FIRST -> "承認・否決の前に、先に「審査中」にしてください";
+            case ALREADY_DECIDED -> "審査が終わった申込の状態は変えられません";
+            case NOT_ALLOWED -> "この状態には変えられません。変えられるのは「申込→審査中」「審査中→承認」「審査中→否決」だけです";
+        };
     }
 
     private static Optional<ApplicationStatus> parseStatusFilter(String status) {
