@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, test, vi } from 'vitest'
 import ApplicationDetail from './ApplicationDetail'
@@ -298,7 +298,9 @@ test('「審査中にする」が成功したら「審査中に変更しまし�
   const decide = await screen.findByRole('button', { name: '決定する' })
   const status = screen.getByRole('status')
   expect(status).toHaveTextContent('審査中に変更しました')
-  expect(status).toHaveFocus()
+  // フォーカスは useEffect で移すので、知らせが出たあとの別のタスクで動くことがある。
+  // 出た直後に確かめると、CI のような遅い環境でまれに落ちるので、移るまで待つ
+  await waitFor(() => expect(status).toHaveFocus())
   expect(decide).not.toHaveFocus()
   expect(screen.getByRole('radio', { name: '承認' })).not.toHaveFocus()
   expect(screen.getByRole('radio', { name: '否決' })).not.toHaveFocus()

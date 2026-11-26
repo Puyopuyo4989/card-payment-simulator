@@ -250,6 +250,12 @@ Stop は、止めないと Claude に理由を伝えられないため `block` �
 - `spring-boot:run` は数えないので、その **起動中**（`npm ci` などでフロントをビルドしている間）に hook が動くと、ぶつかることがあります。
 - プロジェクトの中に作った git worktree（`.claude/worktrees/` など）の中のビルドも、「ほかのビルド」として数えます。
   worktree は `target/` も `node_modules` も別なので、本当はぶつかりませんが、まれなので区別していません。
+- **原因のわからない `node_modules` の消失（2026-11-26、調査は打ち切り）**：9:21:51 ごろ、`frontend/node_modules` の中身がほとんど消えた（`vitest` は `dist/` だけになり、`npx vitest` が `Cannot find module .../node_modules/vitest/config` で起動しなくなった）。`npm ci` で入れ直して直った。
+  - 直前の 9:21:50 に、PostToolUse の `vitest related`（`format_and_test.py`）が動いていた
+  - 9:21:51〜52 に、Claude も人も動かしていない `npm run build`・`npm test`・`npm run format:check`・`npm run coverage` の4つが、`frontend/node/node`（frontend-maven-plugin が入れる Node）から動き、どれも exit 127 で終わった（`~/.npm/_logs` より）。4つとも Maven の `pom.xml` にある npm の手順と同じ
+  - 何がこの4つを動かしたのかは、わかっていない。その時刻に、ターミナルで動かした `./mvnw` はなく、調べた時点で Maven・npm のプロセスも、ほかの Claude のセッションもなかった。`npm ci` のログは、件数の上限（10件）で消されていて残っていない
+  - `other_builds.py` は Maven のプロセスしか数えないので、Maven の外から動いた npm とはぶつかりうる
+  - 次に起きたら、消えた直後に `ls -t ~/.npm/_logs` と `ps -eo pid,ppid,lstart,args` を残してから入れ直す
 - `other_builds.py` の判定（`parent_pid`・`is_maven`）だけを確かめる単体テストはありません。
   hook を通したテスト（下の「テスト」）で、数えるもの・数えないものを確かめています。
 

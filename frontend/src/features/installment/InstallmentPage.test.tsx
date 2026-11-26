@@ -202,7 +202,9 @@ test('実行が終わったら、フォーカスを「計算する」に戻す',
   respond(success(twelveTimes))
 
   expect(await screen.findByText('8,309円')).toBeInTheDocument()
-  expect(button).toHaveFocus()
+  // フォーカスは useEffect（useReturnFocus）で戻すので、結果の文字が出たあとの別のタスクで動くことがある。
+  // 文字が出た直後に確かめると、CI のような遅い環境でまれに落ちるので、戻るまで待つ
+  await waitFor(() => expect(button).toHaveFocus())
 })
 
 test('入力欄で Enter を押して実行したら、フォーカスは入力欄のまま', async () => {
