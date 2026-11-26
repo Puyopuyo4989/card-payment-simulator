@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, test, vi } from 'vitest'
 import StatusChangeForm from './StatusChangeForm'
@@ -411,7 +411,9 @@ test.each([
 
     const status = await screen.findByRole('status')
     expect(status).toHaveTextContent(message)
-    expect(status).toHaveFocus()
+    // フォーカスは useEffect で移すので、知らせが出たあとの別のタスクで動くことがある。
+    // 出た直後に確かめると、CI のような遅い環境でまれに落ちるので、移るまで待つ
+    await waitFor(() => expect(status).toHaveFocus())
   },
 )
 
@@ -496,6 +498,8 @@ test.each([
     })
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
-    expect(button).toHaveFocus()
+    // フォーカスは useEffect（useReturnFocus）で戻すので、エラーが出たあとの別のタスクで動くことがある。
+    // 出た直後に確かめると、CI のような遅い環境でまれに落ちるので、戻るまで待つ
+    await waitFor(() => expect(button).toHaveFocus())
   },
 )
